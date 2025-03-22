@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドメイン検証 - ROYAL LINK</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- サイドバー -->
+    <div class="sidebar">
+      <div class="logo">
+        <h2>ROYAL LINK</h2>
+      </div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> ダッシュボード</a></li>
+          <li class="active"><a href="/domains/add"><i class="fas fa-globe"></i> ドメイン追加</a></li>
+          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> ログアウト</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <header class="top-bar">
+        <h1>ドメイン検証</h1>
+      </header>
+
+      <section class="domain-verify-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><%= domain.domainName %> の検証</h2>
+          </div>
+          <div class="card-body">
+            <div class="steps-container">
+              <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <h3>DNSレコードを追加</h3>
+                  <p>お使いのドメインのDNS設定で、以下のTXTレコードを追加してください：</p>
+                  
+                  <div class="code-box">
+                    <code>
+                      <strong>タイプ:</strong> TXT<br>
+                      <strong>ホスト/名前:</strong> @<br>
+                      <strong>値/内容:</strong> <%= domain.verificationCode %>
+                    </code>
+                    <button class="copy-btn" data-text="<%= domain.verificationCode %>">
+                      <i class="fas fa-copy"></i> コピー
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <h3>DNSを設定</h3>
+                  <p>短縮URLを使用するために、以下のAレコードを追加してください：</p>
+                  
+                  <div class="code-box">
+                    <code>
+                      <strong>タイプ:</strong> A<br>
+                      <strong>ホスト/名前:</strong> @<br>
+                      <strong>値/内容:</strong> <%= process.env.SERVER_IP || '123.456.789.012' %>
+                    </code>
+                    <button class="copy-btn" data-text="<%= process.env.SERVER_IP || '123.456.789.012' %>">
+                      <i class="fas fa-copy"></i> コピー
+                    </button>
+                  </div>
+                  <p class="note">※<a href="https://render.com/docs/custom-domains" target="_blank" rel="noopener">Renderの公式ドキュメント</a>を参照して、実際のIPアドレスを確認してください。</p>
+                </div>
+              </div>
+              
+              <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <h3>検証を完了</h3>
+                  <p>DNS設定が反映されるまで5分〜48時間かかる場合があります。</p>
+                  <p>設定が反映されたら、以下のボタンをクリックして検証を完了してください。</p>
+                  
+                  <form action="/domains/verify/<%= domain._id %>" method="POST" class="verify-form">
+                    <button type="submit" class="btn-primary">検証を完了する</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            
+            <div class="info-box warning">
+              <h3><i class="fas fa-exclamation-triangle"></i> 注意事項</h3>
+              <p>この設定により、このドメインの全てのトラフィックがこのサービスに転送されます。メールサービスなどが影響を受ける可能性があります。</p>
+              <p>サブドメイン（例：short.example.com）を使用することをお勧めします。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // コピーボタン機能
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const text = button.getAttribute('data-text');
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            const original = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> コピーしました';
+            
+            setTimeout(() => {
+              button.innerHTML = original;
+            }, 2000);
+          })
+          .catch(err => {
+            console.error('コピーに失敗しました:', err);
+            alert('コピーに失敗しました');
+          });
+      });
+    });
+  </script>
+</body>
+</html>

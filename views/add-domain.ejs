@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドメイン追加 - ROYAL LINK</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- サイドバー -->
+    <div class="sidebar">
+      <div class="logo">
+        <h2>ROYAL LINK</h2>
+      </div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> ダッシュボード</a></li>
+          <li class="active"><a href="/domains/add"><i class="fas fa-globe"></i> ドメイン追加</a></li>
+          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> ログアウト</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <header class="top-bar">
+        <h1>ドメイン追加</h1>
+      </header>
+
+      <% if (error) { %>
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-circle"></i> <%= error %>
+        </div>
+      <% } %>
+
+      <section class="domain-add-section">
+        <div class="card">
+          <div class="card-header">
+            <h2>新しいドメインを追加</h2>
+          </div>
+          <div class="card-body">
+            <form action="/domains/add" method="POST" class="domain-form">
+              <div class="form-group">
+                <label for="domainName">ドメイン名:</label>
+                <input 
+                  type="text" 
+                  id="domainName" 
+                  name="domainName" 
+                  placeholder="example.com または sub.example.com" 
+                  required
+                >
+                <small>所有している独自ドメインを入力してください</small>
+              </div>
+              
+              <button type="submit" class="btn-primary">ドメインを追加</button>
+            </form>
+
+            <div class="info-box">
+              <h3><i class="fas fa-info-circle"></i> ドメイン追加の手順</h3>
+              <ol>
+                <li>所有しているドメイン名を入力してください</li>
+                <li>ドメインを追加すると、検証ページに移動します</li>
+                <li>検証ページの指示に従ってドメインのDNS設定を行ってください</li>
+                <li>DNS設定が反映されたら（通常数時間以内）、検証を完了できます</li>
+              </ol>
+              <p class="note">※DNSの反映には時間がかかる場合があります（最大48時間）</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>ドメイン利用のメリット</h2>
+          </div>
+          <div class="card-body">
+            <div class="benefits">
+              <div class="benefit-item">
+                <div class="benefit-icon"><i class="fas fa-link"></i></div>
+                <div class="benefit-content">
+                  <h3>ブランディング強化</h3>
+                  <p>あなたのブランドを短縮URLにも反映させることができます。</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon"><i class="fas fa-lock"></i></div>
+                <div class="benefit-content">
+                  <h3>信頼性向上</h3>
+                  <p>独自ドメインを使用することで、リンクの信頼性が高まります。</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="benefit-content">
+                  <h3>クリック数向上</h3>
+                  <p>ブランド名を含むURLはクリック率が高まる傾向があります。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
