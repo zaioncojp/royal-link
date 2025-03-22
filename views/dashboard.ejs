@@ -895,9 +895,4 @@
                             </td>
                             <td>
                               <% if (url.domainId) { %>
-                                <% const domain = domains.find(d => d._id.toString() === url.domainId.toString()); %>
-                                <% if (domain) { %>
-                                  <a href="https://<%= domain.domainName %>/<%= url.customSlug %>" target="_blank">
-                                    <%= domain.domainName %>/<%= url.customSlug %>
-                                  </a>
-                                <% } else
+                                <% const domain =
