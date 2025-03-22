@@ -12,7 +12,7 @@ const app = express();
 // 環境変数の設定
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
-const APP_DOMAIN = process.env.APP_DOMAIN || 'king-rule.site';
+const DOMAIN = process.env.DOMAIN || 'king-rule.site';
 
 // ミドルウェア設定
 app.use(express.json());
@@ -23,19 +23,10 @@ app.set('views', path.join(__dirname, 'views'));
 
 // 独自ドメイン対応のためのミドルウェア
 app.use((req, res, next) => {
-  // 実際のホスト名がking-rule.siteまたはwww.king-rule.siteの場合
-  if (req.hostname === 'king-rule.site' || req.hostname === 'www.king-rule.site') {
-    req.appDomain = APP_DOMAIN;
-  } else {
-    // ローカル開発や他の環境用
-    req.appDomain = req.hostname;
-  }
-  next();
-});
-
-// テンプレートでドメイン情報を使用できるようにする
-app.use((req, res, next) => {
-  res.locals.domain = req.appDomain;
+  // ドメイン情報をリクエストとレスポンスに追加
+  req.appDomain = DOMAIN;
+  res.locals.appDomain = DOMAIN;
+  res.locals.baseUrl = `https://${DOMAIN}`;
   next();
 });
 
@@ -44,7 +35,11 @@ app.use(session({
   secret: 'royal-link-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24時間
+  cookie: { 
+    maxAge: 1000 * 60 * 60 * 24, // 24時間
+    secure: process.env.NODE_ENV === 'production', // 本番環境ではHTTPSのみ
+    domain: process.env.NODE_ENV === 'production' ? `.${DOMAIN}` : undefined
+  }
 }));
 
 // MongoDB接続
@@ -93,6 +88,48 @@ const isAuthenticated = (req, res, next) => {
   res.redirect('/login');
 };
 
+// カスタムスラグによるリダイレクト - ルートパスで直接アクセス (他のルートよりも先に配置)
+app.get('/:slug', async (req, res, next) => {
+  const slug = req.params.slug;
+  
+  // システムページ用のパスはスキップ
+  if (['login', 'register', 'dashboard', 'domains', 'logout', 's'].includes(slug)) {
+    return next();
+  }
+  
+  try {
+    // king-rule.site上のカスタムURLを検索
+    const customUrl = await Url.findOne({ customSlug: slug });
+    
+    if (customUrl) {
+      // クリック数を増やす
+      customUrl.clicks++;
+      await customUrl.save();
+      
+      // 元のURLにリダイレクト
+      return res.redirect(customUrl.originalUrl);
+    }
+    
+    // 短縮コードとしても検索
+    const codeUrl = await Url.findOne({ shortCode: slug });
+    
+    if (codeUrl) {
+      // クリック数を増やす
+      codeUrl.clicks++;
+      await codeUrl.save();
+      
+      // 元のURLにリダイレクト
+      return res.redirect(codeUrl.originalUrl);
+    }
+    
+    // 見つからない場合は次のミドルウェアへ
+    next();
+  } catch (err) {
+    console.error(err);
+    next();
+  }
+});
+
 // ホームページ
 app.get('/', (req, res) => {
   if (req.session.userId) {
@@ -108,6 +145,8 @@ app.get('/login', (req, res) => {
 
 // ログイン処理
 app.post('/login', async (req, res) => {
+  console.log('ログインリクエスト受信:', req.body);
+  
   const { username, password } = req.body;
   
   try {
@@ -138,36 +177,51 @@ app.get('/register', (req, res) => {
 
 // 新規登録処理
 app.post('/register', async (req, res) => {
-  console.log('登録リクエスト受信:', req.body); // リクエストデータを出力
+  console.log('登録リクエスト受信:', req.body);
+  
+  // 入力データが空でないか確認
+  if (!req.body.username || !req.body.email || !req.body.password || !req.body.confirmPassword) {
+    console.log('入力データが不足しています');
+    return res.render('register', { error: '全ての項目を入力してください' });
+  }
   
   const { username, email, password, confirmPassword } = req.body;
   
   if (password !== confirmPassword) {
+    console.log('パスワードが一致しません');
     return res.render('register', { error: 'パスワードが一致しません' });
   }
   
   try {
+    console.log('ユーザー検索開始');
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     
     if (existingUser) {
+      console.log('既存ユーザー検出:', existingUser.username);
       return res.render('register', { error: 'ユーザー名またはメールアドレスが既に使用されています' });
     }
     
+    console.log('パスワードハッシュ化開始');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
+    console.log('新規ユーザー作成開始');
     const newUser = new User({
       username,
       email,
       password: hashedPassword
     });
     
+    console.log('ユーザーをデータベースに保存');
     await newUser.save();
     
+    console.log('セッション設定');
     req.session.userId = newUser._id;
+    
+    console.log('ダッシュボードへリダイレクト');
     res.redirect('/dashboard');
   } catch (err) {
-    console.error('登録エラー:', err);
+    console.error('登録エラー詳細:', err);
     res.render('register', { error: '登録中にエラーが発生しました: ' + err.message });
   }
 });
@@ -248,15 +302,17 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
           customSlug
         });
       } else {
+        const randomSlug = shortid.generate();
         url = new Url({
           userId: req.session.userId,
           originalUrl,
           shortCode: shortid.generate(),
           domainId: domain._id,
-          customSlug: shortid.generate()
+          customSlug: randomSlug
         });
       }
     } else {
+      // デフォルトドメイン(king-rule.site)を使用
       url = new Url({
         userId: req.session.userId,
         originalUrl,
@@ -346,7 +402,7 @@ app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
       return res.redirect('/dashboard?error=ドメインが見つかりません');
     }
     
-    // 実際のDNS検証は省略し、常に成功とする
+    // 簡易版のため、実際の検証はスキップして検証済みにする
     domain.verified = true;
     await domain.save();
     
@@ -387,7 +443,7 @@ app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
   }
 });
 
-// リダイレクト処理
+// リダイレクト処理 - 従来の/s/:code形式もサポート
 app.get('/s/:code', async (req, res) => {
   try {
     const url = await Url.findOne({ shortCode: req.params.code });
@@ -408,6 +464,38 @@ app.get('/s/:code', async (req, res) => {
   }
 });
 
+// テスト用の簡易登録ページ
+app.get('/test-register', (req, res) => {
+  res.send(`
+    <h1>テスト登録</h1>
+    <form action="/test-create-user" method="POST">
+      <input type="text" name="username" placeholder="ユーザー名" required><br>
+      <input type="email" name="email" placeholder="メール" required><br>
+      <input type="password" name="password" placeholder="パスワード" required><br>
+      <input type="submit" value="テスト登録">
+    </form>
+  `);
+});
+
+// テスト用ユーザー作成
+app.post('/test-create-user', async (req, res) => {
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+    
+    const testUser = new User({
+      username: req.body.username,
+      email: req.body.email,
+      password: hashedPassword
+    });
+    
+    const savedUser = await testUser.save();
+    res.send('テストユーザーを作成しました: ' + savedUser.username);
+  } catch (err) {
+    res.send('エラー: ' + err.message);
+  }
+});
+
 // 404ページ
 app.use((req, res) => {
   res.status(404).render('404', { message: 'ページが見つかりません' });
@@ -415,5 +503,7 @@ app.use((req, res) => {
 
 // サーバー起動
 app.listen(PORT, HOST, () => {
-  console.log(`サーバーが起動しました: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`サーバーが起動しました:`);
+  console.log(`- ローカルアクセス: http://localhost:${PORT}`);
+  console.log(`- 本番環境: https://${DOMAIN}`);
 });
