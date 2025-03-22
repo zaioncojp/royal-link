@@ -1,5 +1,3 @@
-// MongoDB接続
-
 // app.js - ROYAL LINKのメインアプリケーション
 const express = require('express');
 const mongoose = require('mongoose');
@@ -10,7 +8,11 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 
 const app = express();
+
+// 環境変数の設定
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+const APP_DOMAIN = process.env.APP_DOMAIN || 'king-rule.site';
 
 // ミドルウェア設定
 app.use(express.json());
@@ -18,6 +20,24 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// 独自ドメイン対応のためのミドルウェア
+app.use((req, res, next) => {
+  // 実際のホスト名がking-rule.siteまたはwww.king-rule.siteの場合
+  if (req.hostname === 'king-rule.site' || req.hostname === 'www.king-rule.site') {
+    req.appDomain = APP_DOMAIN;
+  } else {
+    // ローカル開発や他の環境用
+    req.appDomain = req.hostname;
+  }
+  next();
+});
+
+// テンプレートでドメイン情報を使用できるようにする
+app.use((req, res, next) => {
+  res.locals.domain = req.appDomain;
+  next();
+});
 
 // セッション設定
 app.use(session({
@@ -27,12 +47,8 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24時間
 }));
 
-// MongoDB接続 (接続文字列は自分のものに置き換える)
-// MongoDB接続情報
-// MongoDB接続情報
-const MONGO_URI = 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
-
 // MongoDB接続
+const MONGO_URI = 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDBに接続しました'))
   .catch(err => console.error('MongoDB接続エラー:', err));
@@ -77,8 +93,6 @@ const isAuthenticated = (req, res, next) => {
   res.redirect('/login');
 };
 
-// ルート設定
-
 // ホームページ
 app.get('/', (req, res) => {
   if (req.session.userId) {
@@ -118,46 +132,43 @@ app.post('/login', async (req, res) => {
 });
 
 // 新規登録ページ
+app.get('/register', (req, res) => {
+  res.render('register', { error: null });
+});
+
 // 新規登録処理
 app.post('/register', async (req, res) => {
+  console.log('登録リクエスト受信:', req.body); // リクエストデータを出力
+  
   const { username, email, password, confirmPassword } = req.body;
   
+  if (password !== confirmPassword) {
+    return res.render('register', { error: 'パスワードが一致しません' });
+  }
+  
   try {
-    // パスワード一致確認
-    if (password !== confirmPassword) {
-      return res.render('register', { error: 'パスワードが一致しません' });
-    }
-    
-    // ユーザー名/メール重複チェック
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     
     if (existingUser) {
       return res.render('register', { error: 'ユーザー名またはメールアドレスが既に使用されています' });
     }
     
-    // パスワードのハッシュ化
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // ユーザー作成
     const newUser = new User({
       username,
       email,
       password: hashedPassword
     });
     
-    // データベースに保存
     await newUser.save();
     
-    // セッション作成
     req.session.userId = newUser._id;
-    
-    // ダッシュボードへリダイレクト
     res.redirect('/dashboard');
-    
   } catch (err) {
     console.error('登録エラー:', err);
-    res.render('register', { error: '登録中にエラーが発生しました' });
+    res.render('register', { error: '登録中にエラーが発生しました: ' + err.message });
   }
 });
 
@@ -403,6 +414,6 @@ app.use((req, res) => {
 });
 
 // サーバー起動
-app.listen(PORT, () => {
-  console.log(`サーバーが起動しました: http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`サーバーが起動しました: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
 });

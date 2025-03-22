@@ -1,55 +1,49 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>新規登録 - ROYAL LINK</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <div class="auth-container">
-    <div class="auth-card">
-      <h1>新規登録</h1>
-      
-      <% if (error) { %>
-        <div class="alert alert-error">
-          <%= error %>
-        </div>
-      <% } %>
-      
-      <form action="/register" method="POST">
-        <div class="form-group">
-          <label for="username">ユーザー名</label>
-          <input type="text" id="username" name="username" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="email">メールアドレス</label>
-          <input type="email" id="email" name="email" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="password">パスワード</label>
-          <input type="password" id="password" name="password" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="confirmPassword">パスワード（確認）</label>
-          <input type="password" id="confirmPassword" name="confirmPassword" required>
-        </div>
-        
-        <button type="submit" class="btn-primary btn-block">登録</button>
-      </form>
-      
-      <div class="auth-links">
-        <p>すでにアカウントをお持ちの方は <a href="/login">ログイン</a></p>
-
-        <form action="/register" method="POST">
-          <!-- フォームフィールド -->
-          <button type="submit">登録</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
+app.post('/register', async (req, res) => {
+  console.log('登録リクエスト受信:', req.body);
+  
+  // 入力データが空でないか確認
+  if (!req.body.username || !req.body.email || !req.body.password || !req.body.confirmPassword) {
+    console.log('入力データが不足しています');
+    return res.render('register', { error: '全ての項目を入力してください' });
+  }
+  
+  const { username, email, password, confirmPassword } = req.body;
+  
+  if (password !== confirmPassword) {
+    console.log('パスワードが一致しません');
+    return res.render('register', { error: 'パスワードが一致しません' });
+  }
+  
+  try {
+    console.log('ユーザー検索開始');
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    
+    if (existingUser) {
+      console.log('既存ユーザー検出:', existingUser.username);
+      return res.render('register', { error: 'ユーザー名またはメールアドレスが既に使用されています' });
+    }
+    
+    console.log('パスワードハッシュ化開始');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    console.log('新規ユーザー作成開始');
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+    
+    console.log('ユーザーをデータベースに保存');
+    await newUser.save();
+    
+    console.log('セッション設定');
+    req.session.userId = newUser._id;
+    
+    console.log('ダッシュボードへリダイレクト');
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('登録エラー詳細:', err);
+    res.render('register', { error: '登録中にエラーが発生しました: ' + err.message });
+  }
+});
