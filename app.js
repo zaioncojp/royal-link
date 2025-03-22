@@ -33,12 +33,11 @@ app.use((req, res, next) => {
 // セッション設定
 app.use(session({
   secret: 'royal-link-secret-key',
-  resave: false,
+  resave: true,
   saveUninitialized: true,
   cookie: { 
     maxAge: 1000 * 60 * 60 * 24, // 24時間
-    secure: process.env.NODE_ENV === 'production', // 本番環境ではHTTPSのみ
-    domain: process.env.NODE_ENV === 'production' ? `.${DOMAIN}` : undefined
+    secure: false // 開発中はfalse、本番環境ではtrueにする
   }
 }));
 
@@ -80,11 +79,16 @@ const User = mongoose.model('User', userSchema);
 const Domain = mongoose.model('Domain', domainSchema);
 const Url = mongoose.model('Url', urlSchema);
 
-// 認証チェック
+// 認証チェックミドルウェア
 const isAuthenticated = (req, res, next) => {
-  if (req.session.userId) {
+  console.log('認証チェック、セッション:', req.session);
+  
+  if (req.session && req.session.userId) {
+    console.log('認証成功:', req.session.userId);
     return next();
   }
+  
+  console.log('認証失敗、ログインへリダイレクト');
   res.redirect('/login');
 };
 
@@ -147,26 +151,40 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
   console.log('ログインリクエスト受信:', req.body);
   
+  // リクエストボディが空の場合の対応
+  if (!req.body || !req.body.username || !req.body.password) {
+    console.log('ログインデータが不足しています');
+    return res.render('login', { error: 'ユーザー名とパスワードを入力してください' });
+  }
+  
   const { username, password } = req.body;
   
   try {
+    console.log('ユーザー検索:', username);
     const user = await User.findOne({ username });
     
     if (!user) {
+      console.log('ユーザーが見つかりません');
       return res.render('login', { error: 'ユーザー名またはパスワードが間違っています' });
     }
     
+    console.log('パスワード照合');
     const isMatch = await bcrypt.compare(password, user.password);
     
     if (!isMatch) {
+      console.log('パスワードが一致しません');
       return res.render('login', { error: 'ユーザー名またはパスワードが間違っています' });
     }
     
+    console.log('ログイン成功、セッション設定:', user._id);
     req.session.userId = user._id;
-    res.redirect('/dashboard');
+    
+    // 明示的にダッシュボードへリダイレクト
+    console.log('ダッシュボードへリダイレクト');
+    return res.redirect('/dashboard');
   } catch (err) {
-    console.error(err);
-    res.render('login', { error: 'ログイン中にエラーが発生しました' });
+    console.error('ログインエラー:', err);
+    return res.render('login', { error: 'ログイン処理中にエラーが発生しました: ' + err.message });
   }
 });
 
@@ -235,25 +253,34 @@ app.get('/logout', (req, res) => {
 // ダッシュボード
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
+    console.log('ダッシュボード表示リクエスト、ユーザーID:', req.session.userId);
+    
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      console.log('ユーザーが見つかりません');
+      req.session.destroy();
+      return res.redirect('/login');
+    }
+    
     const urls = await Url.find({ userId: req.session.userId }).sort({ createdAt: -1 });
     const domains = await Domain.find({ userId: req.session.userId });
-    const user = await User.findById(req.session.userId);
     
-    res.render('dashboard', { 
-      urls, 
-      domains, 
-      user, 
-      error: req.query.error || null, 
-      success: req.query.success || null 
+    console.log('ダッシュボード描画');
+    return res.render('dashboard', {
+      urls,
+      domains,
+      user,
+      error: req.query.error || null,
+      success: req.query.success || null
     });
   } catch (err) {
-    console.error(err);
-    res.render('dashboard', { 
-      urls: [], 
-      domains: [], 
-      user: null, 
-      error: 'データの取得中にエラーが発生しました', 
-      success: null 
+    console.error('ダッシュボード表示エラー:', err);
+    return res.render('dashboard', {
+      urls: [],
+      domains: [],
+      user: null,
+      error: 'データの取得中にエラーが発生しました',
+      success: null
     });
   }
 });
@@ -461,38 +488,6 @@ app.get('/s/:code', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.render('404', { message: 'リダイレクト中にエラーが発生しました' });
-  }
-});
-
-// テスト用の簡易登録ページ
-app.get('/test-register', (req, res) => {
-  res.send(`
-    <h1>テスト登録</h1>
-    <form action="/test-create-user" method="POST">
-      <input type="text" name="username" placeholder="ユーザー名" required><br>
-      <input type="email" name="email" placeholder="メール" required><br>
-      <input type="password" name="password" placeholder="パスワード" required><br>
-      <input type="submit" value="テスト登録">
-    </form>
-  `);
-});
-
-// テスト用ユーザー作成
-app.post('/test-create-user', async (req, res) => {
-  try {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
-    
-    const testUser = new User({
-      username: req.body.username,
-      email: req.body.email,
-      password: hashedPassword
-    });
-    
-    const savedUser = await testUser.save();
-    res.send('テストユーザーを作成しました: ' + savedUser.username);
-  } catch (err) {
-    res.send('エラー: ' + err.message);
   }
 });
 
