@@ -7,6 +7,7 @@ const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
+const compression = require('compression'); // 追加: Gzip圧縮
 
 // Mongoose strictQueryの設定
 mongoose.set('strictQuery', true);
@@ -16,6 +17,9 @@ const app = express();
 // プロキシ設定（Renderなどの環境用）
 app.set('trust proxy', 1);
 
+// Gzip圧縮を有効化
+app.use(compression());
+
 // 環境変数の設定
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -24,7 +28,10 @@ const DOMAIN = process.env.DOMAIN || 'king-rule.site';
 // ミドルウェア設定
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static('public', {
+  maxAge: '1d', // クライアント側で1日間キャッシュ
+  etag: true,   // ETagsを有効化
+}));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -104,6 +111,64 @@ const User = mongoose.model('User', userSchema);
 const Domain = mongoose.model('Domain', domainSchema);
 const Url = mongoose.model('Url', urlSchema);
 
+// シンプルなメモリキャッシュ
+const cache = {};
+
+// URLデータ取得の最適化関数
+async function getUrlsForUser(userId) {
+  const cacheKey = `urls_${userId}`;
+  if (cache[cacheKey] && cache[cacheKey].expiry > Date.now()) {
+    console.log('URLキャッシュヒット!');
+    return cache[cacheKey].data;
+  }
+  
+  console.log('URLキャッシュミス - データベースから取得');
+  const urls = await Url.find({ userId })
+    .lean()
+    .select('originalUrl shortCode customSlug domainId clicks createdAt')
+    .sort({ createdAt: -1 });
+  
+  // 5分間キャッシュを保存
+  cache[cacheKey] = {
+    data: urls,
+    expiry: Date.now() + (5 * 60 * 1000)
+  };
+  
+  return urls;
+}
+
+// ドメインデータ取得の最適化関数
+async function getDomainsForUser(userId) {
+  const cacheKey = `domains_${userId}`;
+  if (cache[cacheKey] && cache[cacheKey].expiry > Date.now()) {
+    console.log('ドメインキャッシュヒット!');
+    return cache[cacheKey].data;
+  }
+  
+  console.log('ドメインキャッシュミス - データベースから取得');
+  const domains = await Domain.find({ userId })
+    .lean()
+    .select('domainName verified verificationCode createdAt');
+  
+  // 10分間キャッシュを保存
+  cache[cacheKey] = {
+    data: domains,
+    expiry: Date.now() + (10 * 60 * 1000)
+  };
+  
+  return domains;
+}
+
+// キャッシュを無効化する関数
+function invalidateCache(userId, type) {
+  if (type === 'urls' || type === 'all') {
+    delete cache[`urls_${userId}`];
+  }
+  if (type === 'domains' || type === 'all') {
+    delete cache[`domains_${userId}`];
+  }
+}
+
 // 認証チェックミドルウェア
 const isAuthenticated = (req, res, next) => {
   console.log('認証チェック、セッション:', JSON.stringify(req.session));
@@ -136,6 +201,9 @@ app.get('/:slug', async (req, res, next) => {
       customUrl.clicks++;
       await customUrl.save();
       
+      // URLの所有者のキャッシュを無効化
+      invalidateCache(customUrl.userId, 'urls');
+      
       // 元のURLにリダイレクト
       return res.redirect(customUrl.originalUrl);
     }
@@ -147,6 +215,9 @@ app.get('/:slug', async (req, res, next) => {
       // クリック数を増やす
       codeUrl.clicks++;
       await codeUrl.save();
+      
+      // URLの所有者のキャッシュを無効化
+      invalidateCache(codeUrl.userId, 'urls');
       
       // 元のURLにリダイレクト
       return res.redirect(codeUrl.originalUrl);
@@ -301,20 +372,21 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
     const userId = req.session.userId;
     
-    // 並行してクエリを実行
+    // 並行してクエリを実行（キャッシュ最適化関数を使用）
+    const startTime = Date.now();
     const [user, urls, domains] = await Promise.all([
-      User.findById(userId),
-      Url.find({ userId }).sort({ createdAt: -1 }).lean(), // .leanを使用して純粋なJSONを取得
-      Domain.find({ userId }).lean()
+      User.findById(userId).lean(),
+      getUrlsForUser(userId),
+      getDomainsForUser(userId)
     ]);
-    
-    console.log('データ取得完了:', new Date().toISOString());
+    console.log(`データ取得完了: ${Date.now() - startTime}ms`);
     
     if (!user) {
       req.session.destroy();
       return res.redirect('/login');
     }
     
+    const renderStart = Date.now();
     console.log('レンダリング開始:', new Date().toISOString());
     res.render('dashboard', {
       urls,
@@ -323,8 +395,14 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       error: req.query.error || null,
       success: req.query.success || null,
       appDomain: req.appDomain || 'king-rule.site'
-    }, { async: true });
-    console.log('レンダリングコマンド送信:', new Date().toISOString());
+    }, (err, html) => {
+      if (err) {
+        console.error('レンダリングエラー:', err);
+        return res.status(500).send('レンダリングエラーが発生しました: ' + err.message);
+      }
+      console.log(`レンダリング完了: ${Date.now() - renderStart}ms`);
+      res.send(html);
+    });
   } catch (err) {
     console.error('ダッシュボード表示エラー:', err);
     return res.render('dashboard', {
@@ -334,7 +412,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       error: 'データの取得中にエラーが発生しました: ' + err.message,
       success: null,
       appDomain: req.appDomain || 'king-rule.site'
-    }, { async: true });
+    });
   }
 });
 
@@ -351,9 +429,11 @@ app.get('/dashboard-temp', async (req, res) => {
       return res.redirect('/login');
     }
     
-    // 通常のダッシュボードと同じ処理
-    const urls = await Url.find({ userId }).sort({ createdAt: -1 });
-    const domains = await Domain.find({ userId });
+    // 通常のダッシュボードと同じ処理（キャッシュ最適化関数を使用）
+    const [urls, domains] = await Promise.all([
+      getUrlsForUser(userId),
+      getDomainsForUser(userId)
+    ]);
     
     // セッションに再度ユーザーIDを設定
     req.session.userId = userId;
@@ -366,7 +446,7 @@ app.get('/dashboard-temp', async (req, res) => {
       error: req.query.error || null,
       success: req.query.success || null,
       appDomain: req.appDomain || 'king-rule.site'
-    }, { async: true });
+    });
   } catch (err) {
     console.error('一時ダッシュボード表示エラー:', err);
     return res.redirect('/login');
@@ -436,6 +516,10 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
     }
     
     await url.save();
+    
+    // URLキャッシュを無効化
+    invalidateCache(req.session.userId, 'urls');
+    
     res.redirect('/dashboard?success=短縮URLが作成されました');
     
   } catch (err) {
@@ -479,6 +563,9 @@ app.post('/domains/add', isAuthenticated, async (req, res) => {
     
     await newDomain.save();
     
+    // ドメインキャッシュを無効化
+    invalidateCache(req.session.userId, 'domains');
+    
     res.redirect(`/domains/verify/${newDomain._id}`);
   } catch (err) {
     console.error(err);
@@ -521,6 +608,9 @@ app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
     domain.verified = true;
     await domain.save();
     
+    // ドメインキャッシュを無効化
+    invalidateCache(req.session.userId, 'domains');
+    
     res.redirect('/dashboard?success=ドメインが検証されました');
   } catch (err) {
     console.error(err);
@@ -536,6 +626,9 @@ app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
       userId: req.session.userId
     });
     
+    // ドメインキャッシュを無効化
+    invalidateCache(req.session.userId, 'domains');
+    
     res.redirect('/dashboard?success=ドメインが削除されました');
   } catch (err) {
     console.error(err);
@@ -550,6 +643,9 @@ app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
       _id: req.params.id,
       userId: req.session.userId
     });
+    
+    // URLキャッシュを無効化
+    invalidateCache(req.session.userId, 'urls');
     
     res.redirect('/dashboard?success=URLが削除されました');
   } catch (err) {
@@ -567,6 +663,9 @@ app.get('/s/:code', async (req, res) => {
       // クリック数を増やす
       url.clicks++;
       await url.save();
+      
+      // URLキャッシュを無効化
+      invalidateCache(url.userId, 'urls');
       
       // 元のURLにリダイレクト
       return res.redirect(url.originalUrl);
