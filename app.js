@@ -774,4 +774,84 @@ app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?success=URLが削除されました');
   } catch (err) {
     console.error(err);
-    res.
+    res.redirect('/dashboard?error=URL削除中にエラーが発生しました: ' + err.message);
+  }
+});
+
+// リダイレクト処理 - 従来の/s/:code形式もサポート
+app.get('/s/:code', async (req, res) => {
+  try {
+    const url = await Url.findOne({ shortCode: req.params.code });
+    
+    if (url) {
+      // クリック数を増やす
+      url.clicks++;
+      
+      // アクセスログを追加
+      url.accessLogs.push({
+        timestamp: new Date(),
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        referer: req.headers.referer || 'direct'
+      });
+      
+      await url.save();
+      
+      // 元のURLにリダイレクト
+      return res.redirect(url.originalUrl);
+    } else {
+      return res.render('404', { message: 'URLが見つかりません' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.render('404', { message: 'リダイレクト中にエラーが発生しました: ' + err.message });
+  }
+});
+
+// シンプルなステータスエンドポイント
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'ROYAL LINK is running!',
+    time: new Date().toISOString()
+  });
+});
+
+// エラーページ
+app.get('/error', (req, res) => {
+  res.render('error', { 
+    message: req.query.message || '内部サーバーエラーが発生しました',
+    error: {}
+  });
+});
+
+// エラーハンドリングミドルウェア
+app.use((err, req, res, next) => {
+  console.error('アプリケーションエラー:', err);
+  res.status(500).render('error', { 
+    message: '内部サーバーエラーが発生しました',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
+
+// 404ページ
+app.use((req, res) => {
+  res.status(404).render('404', { message: 'ページが見つかりません' });
+});
+
+// メモリ使用量の監視とログ
+function logMemoryUsage() {
+  const memoryUsage = process.memoryUsage();
+  console.log(`メモリ使用状況: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
+}
+
+// 定期的にメモリ使用量をログに記録
+setInterval(logMemoryUsage, 60000); // 1分ごとに記録
+logMemoryUsage(); // 起動時に記録
+
+// サーバー起動
+app.listen(PORT, HOST, () => {
+  console.log(`サーバーが起動しました:`);
+  console.log(`- ローカルアクセス: http://localhost:${PORT}`);
+  console.log(`- 本番環境: https://${DOMAIN}`);
+});
