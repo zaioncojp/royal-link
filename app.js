@@ -764,4 +764,20 @@ app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
 });
 
 // URL削除処理
-app.get('/urls/delete
+app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
+  try {
+    await Url.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.session.userId
+    });
+    
+    res.redirect('/dashboard?success=URLが削除されました');
+  } catch (err) {
+    console.error(err);
+    res.redirect('/dashboard?error=URL削除中にエラーが発生しました: ' + err.message);
+  }
+});
+
+// リダイレクト処理 - 従来の/s/:code形式もサポート
+app.get('/s/:code', async (req, res) => {
+  try {
