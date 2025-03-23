@@ -17,6 +17,9 @@
     <div class="main-content">
       <header class="top-bar">
         <h1>ダッシュボード</h1>
+        <a href="/dashboard" class="refresh-btn">
+          <i class="fas fa-sync-alt"></i> 更新
+        </a>
       </header>
 
       <% if (error) { %>
@@ -64,5 +67,37 @@
       });
     });
   </script>
+
+  <style>
+    /* 更新ボタンのスタイル */
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--light-color);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s;
+      font-weight: 500;
+      border: 1px solid var(--glass-border);
+    }
+    
+    .refresh-btn i {
+      margin-right: 0.5rem;
+    }
+    
+    .refresh-btn:hover {
+      background: var(--primary-gradient);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(110, 142, 251, 0.3);
+      color: white;
+      text-decoration: none;
+    }
+    
+    .refresh-btn:active {
+      transform: translateY(1px);
+    }
+  </style>
 </body>
 </html>

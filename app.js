@@ -267,7 +267,6 @@ app.post('/login', async (req, res) => {
     return res.render('login', { error: 'ログイン処理中にエラーが発生しました: ' + err.message });
   }
 });
-
 // 新規登録ページ
 app.get('/register', (req, res) => {
   try {
@@ -438,7 +437,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     });
   }
 });
-
 // URL詳細ページの追加
 app.get('/urls/detail/:id', isAuthenticated, async (req, res) => {
   try {
@@ -575,7 +573,6 @@ app.get('/dashboard-temp', async (req, res) => {
     return res.redirect('/login');
   }
 });
-
 // URL短縮処理
 app.post('/shorten', isAuthenticated, async (req, res) => {
   const { originalUrl, domainId, customSlug } = req.body;
@@ -747,7 +744,6 @@ app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?error=ドメイン検証中にエラーが発生しました: ' + err.message);
   }
 });
-
 // ドメイン削除処理
 app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
   try {
