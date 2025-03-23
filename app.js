@@ -91,7 +91,7 @@ const domainSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// URLモデル
+// URLモデル - アクセスログフィールドを追加
 const urlSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   originalUrl: { type: String, required: true },
@@ -99,7 +99,14 @@ const urlSchema = new mongoose.Schema({
   domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'Domain', default: null },
   customSlug: { type: String, default: null },
   clicks: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  // アクセスログを追加
+  accessLogs: [{
+    timestamp: { type: Date, default: Date.now },
+    ipAddress: { type: String },
+    userAgent: { type: String },
+    referer: { type: String }
+  }]
 });
 
 // モデルのインデックス設定
@@ -130,7 +137,7 @@ app.get('/:slug', async (req, res, next) => {
   const slug = req.params.slug;
   
   // システムページ用のパスはスキップ
-  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls', 'status', 'error'].includes(slug)) {
+  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls', 'status', 'error', 'urls'].includes(slug)) {
     return next();
   }
   
@@ -141,6 +148,15 @@ app.get('/:slug', async (req, res, next) => {
     if (customUrl) {
       // クリック数を増やす
       customUrl.clicks++;
+      
+      // アクセスログを追加
+      customUrl.accessLogs.push({
+        timestamp: new Date(),
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        referer: req.headers.referer || 'direct'
+      });
+      
       await customUrl.save();
       
       // 元のURLにリダイレクト
@@ -153,6 +169,15 @@ app.get('/:slug', async (req, res, next) => {
     if (codeUrl) {
       // クリック数を増やす
       codeUrl.clicks++;
+      
+      // アクセスログを追加
+      codeUrl.accessLogs.push({
+        timestamp: new Date(),
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        referer: req.headers.referer || 'direct'
+      });
+      
       await codeUrl.save();
       
       // 元のURLにリダイレクト
@@ -320,7 +345,7 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-// ダッシュボード - 最適化バージョン
+// ダッシュボード - 時間帯データを追加
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
     console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
@@ -357,6 +382,26 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     urls = urls || [];
     domains = domains || [];
     
+    // 時間帯別統計を計算
+    const timeStats = {};
+    for (const url of urls) {
+      if (url.accessLogs && url.accessLogs.length > 0) {
+        url.accessLogs.forEach(log => {
+          const hour = new Date(log.timestamp).getHours();
+          if (!timeStats[hour]) {
+            timeStats[hour] = 0;
+          }
+          timeStats[hour]++;
+        });
+      }
+    }
+    
+    // 時間帯順にソート
+    const hourlyStats = Array.from({length: 24}, (_, i) => ({
+      hour: i,
+      count: timeStats[i] || 0
+    }));
+    
     // デバッグ: URLの内容を確認
     if (urls.length > 0) {
       console.log('最新のURLデータ例:', JSON.stringify(urls[0]));
@@ -368,6 +413,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       urls,
       domains,
       user,
+      hourlyStats, // 時間帯別統計を追加
       error: req.query.error || null,
       success: req.query.success || null,
       appDomain: req.appDomain || 'king-rule.site'  // appDomainが確実に渡されるようにする
@@ -385,10 +431,72 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       urls: [],
       domains: [],
       user: { username: '不明なユーザー' },
+      hourlyStats: Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })),
       error: 'データの取得中にエラーが発生しました: ' + err.message,
       success: null,
       appDomain: req.appDomain || 'king-rule.site'  // エラー時もappDomainを渡す
     });
+  }
+});
+
+// URL詳細ページの追加
+app.get('/urls/detail/:id', isAuthenticated, async (req, res) => {
+  try {
+    const url = await Url.findOne({
+      _id: req.params.id,
+      userId: req.session.userId
+    });
+    
+    if (!url) {
+      return res.redirect('/dashboard?error=URLが見つかりません');
+    }
+    
+    // 時間帯別データの集計
+    const hourlyData = Array.from({length: 24}, (_, i) => ({
+      hour: i,
+      count: 0
+    }));
+    
+    // 日付別データ（過去30日）
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const dailyData = {};
+    
+    for (const log of url.accessLogs || []) {
+      const date = new Date(log.timestamp);
+      const hour = date.getHours();
+      hourlyData[hour].count++;
+      
+      // 日付別データ
+      if (date >= thirtyDaysAgo) {
+        const dateStr = date.toISOString().split('T')[0];
+        if (!dailyData[dateStr]) {
+          dailyData[dateStr] = 0;
+        }
+        dailyData[dateStr]++;
+      }
+    }
+    
+    const dailyChartData = Object.keys(dailyData).sort().map(date => ({
+      date,
+      count: dailyData[date]
+    }));
+    
+    const domain = url.domainId ? await Domain.findById(url.domainId) : null;
+    
+    res.render('url-detail', {
+      url,
+      domain,
+      hourlyData,
+      dailyChartData,
+      error: req.query.error || null,
+      success: req.query.success || null,
+      appDomain: req.appDomain || 'king-rule.site'
+    });
+    
+  } catch (err) {
+    console.error('URL詳細表示エラー:', err);
+    res.redirect('/dashboard?error=URL詳細の読み込み中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -429,6 +537,26 @@ app.get('/dashboard-temp', async (req, res) => {
       Domain.find({ userId }).lean()
     ]);
     
+    // 時間帯別統計を計算
+    const timeStats = {};
+    for (const url of urls || []) {
+      if (url.accessLogs && url.accessLogs.length > 0) {
+        url.accessLogs.forEach(log => {
+          const hour = new Date(log.timestamp).getHours();
+          if (!timeStats[hour]) {
+            timeStats[hour] = 0;
+          }
+          timeStats[hour]++;
+        });
+      }
+    }
+    
+    // 時間帯順にソート
+    const hourlyStats = Array.from({length: 24}, (_, i) => ({
+      hour: i,
+      count: timeStats[i] || 0
+    }));
+    
     // セッションに再度ユーザーIDを設定
     req.session.userId = userId;
     req.session.save();
@@ -437,6 +565,7 @@ app.get('/dashboard-temp', async (req, res) => {
       urls: urls || [],
       domains: domains || [],
       user,
+      hourlyStats,
       error: req.query.error || null,
       success: req.query.success || null,
       appDomain: req.appDomain || 'king-rule.site'
@@ -642,78 +771,4 @@ app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
       userId: req.session.userId
     });
     
-    res.redirect('/dashboard?success=URLが削除されました');
-  } catch (err) {
-    console.error(err);
-    res.redirect('/dashboard?error=URL削除中にエラーが発生しました: ' + err.message);
-  }
-});
-
-// リダイレクト処理 - 従来の/s/:code形式もサポート
-app.get('/s/:code', async (req, res) => {
-  try {
-    const url = await Url.findOne({ shortCode: req.params.code });
-    
-    if (url) {
-      // クリック数を増やす
-      url.clicks++;
-      await url.save();
-      
-      // 元のURLにリダイレクト
-      return res.redirect(url.originalUrl);
-    } else {
-      return res.render('404', { message: 'URLが見つかりません' });
-    }
-  } catch (err) {
-    console.error(err);
-    res.render('404', { message: 'リダイレクト中にエラーが発生しました: ' + err.message });
-  }
-});
-
-// シンプルなステータスエンドポイント
-app.get('/status', (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'ROYAL LINK is running!',
-    time: new Date().toISOString()
-  });
-});
-
-// エラーページ
-app.get('/error', (req, res) => {
-  res.render('error', { 
-    message: req.query.message || '内部サーバーエラーが発生しました',
-    error: {}
-  });
-});
-
-// エラーハンドリングミドルウェア
-app.use((err, req, res, next) => {
-  console.error('アプリケーションエラー:', err);
-  res.status(500).render('error', { 
-    message: '内部サーバーエラーが発生しました',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
-
-// 404ページ
-app.use((req, res) => {
-  res.status(404).render('404', { message: 'ページが見つかりません' });
-});
-
-// メモリ使用量の監視とログ
-function logMemoryUsage() {
-  const memoryUsage = process.memoryUsage();
-  console.log(`メモリ使用状況: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
-}
-
-// 定期的にメモリ使用量をログに記録
-setInterval(logMemoryUsage, 60000); // 1分ごとに記録
-logMemoryUsage(); // 起動時に記録
-
-// サーバー起動
-app.listen(PORT, HOST, () => {
-  console.log(`サーバーが起動しました:`);
-  console.log(`- ローカルアクセス: http://localhost:${PORT}`);
-  console.log(`- 本番環境: https://${DOMAIN}`);
-});
+    res
