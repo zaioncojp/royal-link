@@ -295,30 +295,36 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-// ダッシュボード
+// ダッシュボード - パフォーマンス最適化バージョン
 app.get('/dashboard', isAuthenticated, async (req, res) => {
   try {
-    console.log('ダッシュボード表示リクエスト、ユーザーID:', req.session.userId);
+    console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
+    const userId = req.session.userId;
     
-    const user = await User.findById(req.session.userId);
+    // 並行してクエリを実行
+    const [user, urls, domains] = await Promise.all([
+      User.findById(userId),
+      Url.find({ userId }).sort({ createdAt: -1 }).lean(), // .leanを使用して純粋なJSONを取得
+      Domain.find({ userId }).lean()
+    ]);
+    
+    console.log('データ取得完了:', new Date().toISOString());
+    
     if (!user) {
-      console.log('ユーザーが見つかりません');
       req.session.destroy();
       return res.redirect('/login');
     }
     
-    const urls = await Url.find({ userId: req.session.userId }).sort({ createdAt: -1 });
-    const domains = await Domain.find({ userId: req.session.userId });
-    
-    console.log('ダッシュボード描画');
-    return res.render('dashboard', {
+    console.log('レンダリング開始:', new Date().toISOString());
+    res.render('dashboard', {
       urls,
       domains,
       user,
       error: req.query.error || null,
       success: req.query.success || null,
       appDomain: req.appDomain || 'king-rule.site'
-    }, { async: true }); // async: true を追加
+    }, { async: true });
+    console.log('レンダリングコマンド送信:', new Date().toISOString());
   } catch (err) {
     console.error('ダッシュボード表示エラー:', err);
     return res.render('dashboard', {
