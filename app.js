@@ -764,11 +764,4 @@ app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
 });
 
 // URL削除処理
-app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
-  try {
-    await Url.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.session.userId
-    });
-    
-    res
+app.get('/urls/delete
