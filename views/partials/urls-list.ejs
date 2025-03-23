@@ -32,15 +32,21 @@
                         <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
                       </td>
                       <td>
-                        <% if (urls[i].customSlug) { %>
-                          <a href="https://<%= appDomain %>/<%= urls[i].customSlug %>" target="_blank">
-                            <%= appDomain %>/<%= urls[i].customSlug %>
-                          </a>
-                        <% } else { %>
-                          <a href="https://<%= appDomain %>/s/<%= urls[i].shortCode %>" target="_blank">
-                            <%= appDomain %>/s/<%= urls[i].shortCode %>
-                          </a>
-                        <% } %>
+                        <% 
+                          const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
+                          let shortUrl = '';
+                          if (urls[i].customSlug) {
+                            shortUrl = `https://${domain}/${urls[i].customSlug}`;
+                          } else {
+                            shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
+                          }
+                        %>
+                        <a href="<%= shortUrl %>" target="_blank">
+                          <%= shortUrl %>
+                        </a>
+                        <button class="copy-btn" data-url="<%= shortUrl %>">
+                          <i class="fas fa-copy"></i>
+                        </button>
                       </td>
                       <td><%= urls[i].clicks || 0 %></td>
                       <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
@@ -87,6 +93,36 @@
     </div>
   </div>
 </section>
+
+<script>
+  // コピーボタン機能を追加
+  document.addEventListener('DOMContentLoaded', function() {
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    
+    copyButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const url = this.getAttribute('data-url');
+        
+        navigator.clipboard.writeText(url)
+          .then(() => {
+            // コピー成功時の表示
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i>';
+            this.classList.add('copied');
+            
+            setTimeout(() => {
+              this.innerHTML = originalHTML;
+              this.classList.remove('copied');
+            }, 2000);
+          })
+          .catch(err => {
+            console.error('コピーに失敗しました:', err);
+          });
+      });
+    });
+  });
+</script>
 
 <style>
   /* URL一覧と統計タブ専用スタイル */

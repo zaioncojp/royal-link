@@ -357,6 +357,11 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     urls = urls || [];
     domains = domains || [];
     
+    // デバッグ: URLの内容を確認
+    if (urls.length > 0) {
+      console.log('最新のURLデータ例:', JSON.stringify(urls[0]));
+    }
+    
     const renderStart = Date.now();
     console.log('レンダリング開始:', new Date().toISOString());
     res.render('dashboard', {
@@ -365,7 +370,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       user,
       error: req.query.error || null,
       success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site'
+      appDomain: req.appDomain || 'king-rule.site'  // appDomainが確実に渡されるようにする
     }, (err, html) => {
       if (err) {
         console.error('レンダリングエラー:', err);
@@ -382,7 +387,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       user: { username: '不明なユーザー' },
       error: 'データの取得中にエラーが発生しました: ' + err.message,
       success: null,
-      appDomain: req.appDomain || 'king-rule.site'
+      appDomain: req.appDomain || 'king-rule.site'  // エラー時もappDomainを渡す
     });
   }
 });
