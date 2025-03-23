@@ -130,7 +130,7 @@ app.get('/:slug', async (req, res, next) => {
   const slug = req.params.slug;
   
   // システムページ用のパスはスキップ
-  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls'].includes(slug)) {
+  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls', 'status', 'error'].includes(slug)) {
     return next();
   }
   
@@ -167,17 +167,30 @@ app.get('/:slug', async (req, res, next) => {
   }
 });
 
-// ホームページ
+// ホームページ - シンプル化
 app.get('/', (req, res) => {
-  if (req.session.userId) {
-    return res.redirect('/dashboard');
+  try {
+    console.log('ホームページアクセス');
+    if (req.session.userId) {
+      console.log('ログイン済みユーザー、ダッシュボードへリダイレクト');
+      return res.redirect('/dashboard');
+    }
+    console.log('ホームページレンダリング');
+    return res.render('home');
+  } catch (err) {
+    console.error('ホームページエラー:', err);
+    res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
   }
-  res.render('home');
 });
 
 // ログインページ
 app.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  try {
+    res.render('login', { error: null });
+  } catch (err) {
+    console.error('ログインページエラー:', err);
+    res.status(500).send('内部サーバーエラーが発生しました');
+  }
 });
 
 // ログイン処理
@@ -232,7 +245,12 @@ app.post('/login', async (req, res) => {
 
 // 新規登録ページ
 app.get('/register', (req, res) => {
-  res.render('register', { error: null });
+  try {
+    res.render('register', { error: null });
+  } catch (err) {
+    console.error('登録ページエラー:', err);
+    res.status(500).send('内部サーバーエラーが発生しました');
+  }
 });
 
 // 新規登録処理
@@ -310,11 +328,21 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     
     // 並行してクエリを実行
     const startTime = Date.now();
-    const [user, urls, domains] = await Promise.all([
-      User.findById(userId).lean(),
-      Url.find({ userId }).sort({ createdAt: -1 }).lean(),
-      Domain.find({ userId }).lean()
-    ]);
+    let user, urls, domains;
+    
+    try {
+      [user, urls, domains] = await Promise.all([
+        User.findById(userId).lean(),
+        Url.find({ userId }).sort({ createdAt: -1 }).lean(),
+        Domain.find({ userId }).lean()
+      ]);
+    } catch (dbErr) {
+      console.error('データベース取得エラー:', dbErr);
+      // エラー発生時は空の配列を設定
+      urls = [];
+      domains = [];
+    }
+    
     console.log(`データ取得完了: ${Date.now() - startTime}ms`);
     
     if (!user) {
@@ -324,6 +352,10 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     
     console.log(`取得したURL数: ${urls ? urls.length : 0}`);
     console.log(`取得したドメイン数: ${domains ? domains.length : 0}`);
+    
+    // nullチェックを追加
+    urls = urls || [];
+    domains = domains || [];
     
     const renderStart = Date.now();
     console.log('レンダリング開始:', new Date().toISOString());
@@ -347,7 +379,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     return res.render('dashboard', {
       urls: [],
       domains: [],
-      user: null,
+      user: { username: '不明なユーザー' },
       error: 'データの取得中にエラーが発生しました: ' + err.message,
       success: null,
       appDomain: req.appDomain || 'king-rule.site'
@@ -397,8 +429,8 @@ app.get('/dashboard-temp', async (req, res) => {
     req.session.save();
     
     return res.render('dashboard', {
-      urls,
-      domains,
+      urls: urls || [],
+      domains: domains || [],
       user,
       error: req.query.error || null,
       success: req.query.success || null,
@@ -485,7 +517,12 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
 
 // ドメイン追加ページ
 app.get('/domains/add', isAuthenticated, (req, res) => {
-  res.render('add-domain', { error: null });
+  try {
+    res.render('add-domain', { error: null });
+  } catch (err) {
+    console.error('ドメイン追加ページエラー:', err);
+    res.status(500).send('内部サーバーエラーが発生しました');
+  }
 });
 
 // ドメイン追加処理
@@ -616,6 +653,15 @@ app.get('/s/:code', async (req, res) => {
     console.error(err);
     res.render('404', { message: 'リダイレクト中にエラーが発生しました: ' + err.message });
   }
+});
+
+// シンプルなステータスエンドポイント
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'ROYAL LINK is running!',
+    time: new Date().toISOString()
+  });
 });
 
 // エラーページ

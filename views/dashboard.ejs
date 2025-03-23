@@ -33,13 +33,13 @@
       <% } %>
 
       <!-- URL作成セクション -->
-      <%- include('partials/url-form', { domains: domains, appDomain: appDomain }) %>
+      <%- include('partials/url-form', { domains: domains || [], appDomain: appDomain }) %>
       
       <!-- ドメイン一覧 -->
-      <%- include('partials/domains-list', { domains: domains }) %>
+      <%- include('partials/domains-list', { domains: domains || [] }) %>
       
       <!-- URL一覧とアクセス統計 -->
-      <%- include('partials/urls-list', { urls: urls, appDomain: appDomain }) %>
+      <%- include('partials/urls-list', { urls: urls || [], appDomain: appDomain }) %>
     </div>
   </div>
 
@@ -60,7 +60,10 @@
           document.querySelectorAll('.tab-panel').forEach(panel => {
             panel.classList.remove('active');
           });
-          document.getElementById(`${tabId}-tab`).classList.add('active');
+          const targetPanel = document.getElementById(`${tabId}-tab`);
+          if (targetPanel) {
+            targetPanel.classList.add('active');
+          }
         });
       });
       
@@ -98,7 +101,7 @@
       }
       
       // 初期化時にコピーボタンを追加
-      addCopyButtons();
+      setTimeout(addCopyButtons, 500);
     });
   </script>
 </body>

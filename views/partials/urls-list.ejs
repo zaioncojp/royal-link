@@ -42,7 +42,7 @@
                           </a>
                         <% } %>
                       </td>
-                      <td><%= urls[i].clicks %></td>
+                      <td><%= urls[i].clicks || 0 %></td>
                       <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
                       <td>
                         <div class="action-buttons">
@@ -66,7 +66,7 @@
             <div class="chart-container">
               <% 
                 // クリック数の多い順にソート
-                const sortedUrls = [...urls].sort((a, b) => b.clicks - a.clicks).slice(0, 10);
+                const sortedUrls = [...urls].sort((a, b) => (b.clicks || 0) - (a.clicks || 0)).slice(0, 10);
                 const maxClicks = Math.max(...sortedUrls.map(url => url.clicks || 0), 1);
               %>
               
