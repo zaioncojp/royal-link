@@ -52,6 +52,9 @@
                       <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
                       <td>
                         <div class="action-buttons">
+                          <a href="/urls/detail/<%= urls[i]._id %>" class="btn-small btn-info" title="詳細">
+                            <i class="fas fa-chart-bar"></i>
+                          </a>
                           <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
                             <i class="fas fa-trash"></i>
                           </a>
@@ -68,7 +71,37 @@
         <!-- アクセス統計タブ -->
         <div id="analytics-tab" class="tab-panel">
           <div class="analytics-chart">
-            <h3>クリック数の推移</h3>
+            <h3>時間帯別アクセス統計</h3>
+            <div class="chart-container">
+              <% 
+                // 時間帯別のクリック数集計
+                const hourlyStats = Array(24).fill(0);
+                
+                urls.forEach(url => {
+                  if (url.accessLogs && url.accessLogs.length > 0) {
+                    url.accessLogs.forEach(log => {
+                      const hour = new Date(log.timestamp).getHours();
+                      hourlyStats[hour]++;
+                    });
+                  }
+                });
+                
+                const maxHourlyClicks = Math.max(...hourlyStats, 1);
+              %>
+              
+              <% for (let i = 0; i < 24; i++) { %>
+                <div class="chart-bar">
+                  <div class="bar" style="height: <%= Math.max(20, (hourlyStats[i] / maxHourlyClicks) * 250) %>px">
+                    <span class="clicks"><%= hourlyStats[i] %></span>
+                  </div>
+                  <span class="code"><%= i %>:00</span>
+                </div>
+              <% } %>
+            </div>
+          </div>
+          
+          <div class="analytics-chart mt-4">
+            <h3>人気の短縮URL</h3>
             <div class="chart-container">
               <% 
                 // クリック数の多い順にソート
@@ -76,12 +109,14 @@
                 const maxClicks = Math.max(...sortedUrls.map(url => url.clicks || 0), 1);
               %>
               
-              <% for (let i = 0; i < sortedUrls.length; i++) { %>
+              <% for (let i = 0; i < sortedUrls.length && i < 8; i++) { %>
                 <div class="chart-bar">
-                  <div class="bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
+                  <div class="bar popular-bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
                     <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
                   </div>
-                  <span class="code"><%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %></span>
+                  <span class="code" title="<%= sortedUrls[i].originalUrl %>">
+                    <%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %>
+                  </span>
                 </div>
               <% } %>
             </div>
@@ -166,6 +201,14 @@
     margin-top: 1rem;
   }
   
+  .analytics-chart h3 {
+    margin-bottom: 1.5rem;
+    color: var(--light-color);
+    font-size: 1.1rem;
+    text-align: center;
+    opacity: 0.9;
+  }
+  
   .chart-container {
     display: flex;
     justify-content: space-around;
@@ -173,14 +216,15 @@
     height: 300px;
     padding-bottom: 2rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.5rem;
   }
   
   .chart-bar {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 60px;
+    min-width: 40px;
+    margin: 0 0.2rem;
   }
   
   .bar {
@@ -190,7 +234,18 @@
     position: relative;
     box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 10px rgba(110, 142, 251, 0.3);
     min-height: 20px;
-    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: growUp 1s ease-out forwards;
+  }
+  
+  @keyframes growUp {
+    from { height: 0; }
+    to { height: auto; }
+  }
+  
+  .bar.popular-bar {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 10px rgba(255, 107, 107, 0.3);
   }
   
   .clicks {
@@ -211,5 +266,57 @@
     font-size: 0.75rem;
     color: var(--light-color);
     opacity: 0.7;
+    max-width: 65px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .mt-4 {
+    margin-top: 2rem;
+  }
+  
+  .tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  
+  .tab-btn {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--light-color);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    opacity: 0.7;
+  }
+  
+  .tab-btn:hover {
+    opacity: 1;
+  }
+  
+  .tab-btn.active {
+    opacity: 1;
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-light);
+  }
+  
+  .tab-panel {
+    display: none;
+  }
+  
+  .tab-panel.active {
+    display: block;
+    animation: fadeIn 0.5s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
