@@ -5,7 +5,11 @@ const shortid = require('shortid');
 const validUrl = require('valid-url');
 const path = require('path');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
+
+// Mongoose strictQueryの設定
+mongoose.set('strictQuery', true);
 
 const app = express();
 
@@ -30,22 +34,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// セッション設定
-app.use(session({
-  secret: 'royal-link-secret-key',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { 
-    maxAge: 1000 * 60 * 60 * 24, // 24時間
-    secure: false // 開発中はfalse、本番環境ではtrueにする
-  }
-}));
-
 // MongoDB接続
-const MONGO_URI = 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDBに接続しました'))
   .catch(err => console.error('MongoDB接続エラー:', err));
+
+// セッション設定（MongoDBセッションストアを使用）
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'royal-link-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 1000 * 60 * 60 * 24, // 24時間
+    secure: process.env.NODE_ENV === 'production'
+  },
+  store: MongoStore.create({
+    mongoUrl: MONGO_URI,
+    ttl: 60 * 60 * 24 // セッションの有効期限（秒単位）- 1日
+  })
+}));
 
 // ユーザーモデル
 const userSchema = new mongoose.Schema({
@@ -74,6 +82,11 @@ const urlSchema = new mongoose.Schema({
   clicks: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
+
+// モデルのインデックス設定
+urlSchema.index({ shortCode: 1 });
+urlSchema.index({ customSlug: 1 });
+domainSchema.index({ domainName: 1 });
 
 const User = mongoose.model('User', userSchema);
 const Domain = mongoose.model('Domain', domainSchema);
@@ -271,17 +284,19 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       domains,
       user,
       error: req.query.error || null,
-      success: req.query.success || null
-    });
+      success: req.query.success || null,
+      appDomain: req.appDomain || 'king-rule.site'
+    }, { async: true }); // async: true を追加
   } catch (err) {
     console.error('ダッシュボード表示エラー:', err);
     return res.render('dashboard', {
       urls: [],
       domains: [],
       user: null,
-      error: 'データの取得中にエラーが発生しました',
-      success: null
-    });
+      error: 'データの取得中にエラーが発生しました: ' + err.message,
+      success: null,
+      appDomain: req.appDomain || 'king-rule.site'
+    }, { async: true });
   }
 });
 
@@ -352,7 +367,7 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
     
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=URL短縮中にエラーが発生しました');
+    res.redirect('/dashboard?error=URL短縮中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -394,7 +409,7 @@ app.post('/domains/add', isAuthenticated, async (req, res) => {
     res.redirect(`/domains/verify/${newDomain._id}`);
   } catch (err) {
     console.error(err);
-    res.render('add-domain', { error: 'ドメイン追加中にエラーが発生しました' });
+    res.render('add-domain', { error: 'ドメイン追加中にエラーが発生しました: ' + err.message });
   }
 });
 
@@ -413,7 +428,7 @@ app.get('/domains/verify/:id', isAuthenticated, async (req, res) => {
     res.render('verify-domain', { domain });
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=ドメイン検証ページの読み込み中にエラーが発生しました');
+    res.redirect('/dashboard?error=ドメイン検証ページの読み込み中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -436,7 +451,7 @@ app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?success=ドメインが検証されました');
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=ドメイン検証中にエラーが発生しました');
+    res.redirect('/dashboard?error=ドメイン検証中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -451,7 +466,7 @@ app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?success=ドメインが削除されました');
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=ドメイン削除中にエラーが発生しました');
+    res.redirect('/dashboard?error=ドメイン削除中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -466,7 +481,7 @@ app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?success=URLが削除されました');
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=URL削除中にエラーが発生しました');
+    res.redirect('/dashboard?error=URL削除中にエラーが発生しました: ' + err.message);
   }
 });
 
@@ -487,14 +502,33 @@ app.get('/s/:code', async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.render('404', { message: 'リダイレクト中にエラーが発生しました' });
+    res.render('404', { message: 'リダイレクト中にエラーが発生しました: ' + err.message });
   }
+});
+
+// エラーハンドリングミドルウェア
+app.use((err, req, res, next) => {
+  console.error('アプリケーションエラー:', err);
+  res.status(500).render('error', { 
+    message: '内部サーバーエラーが発生しました',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
 });
 
 // 404ページ
 app.use((req, res) => {
   res.status(404).render('404', { message: 'ページが見つかりません' });
 });
+
+// メモリ使用量の監視とログ
+function logMemoryUsage() {
+  const memoryUsage = process.memoryUsage();
+  console.log(`メモリ使用状況: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
+}
+
+// 定期的にメモリ使用量をログに記録
+setInterval(logMemoryUsage, 60000); // 1分ごとに記録
+logMemoryUsage(); // 起動時に記録
 
 // サーバー起動
 app.listen(PORT, HOST, () => {

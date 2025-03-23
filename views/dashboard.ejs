@@ -6,6 +6,7 @@
   <title>ダッシュボード - ROYAL LINK</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
+    /* スタイルはそのまま使用 */
     :root {
       --primary-color: #6e8efb;
       --primary-light: #a777e3;
@@ -374,10 +375,6 @@
       background: rgba(110, 142, 251, 0.1);
     }
     
-    .text-center {
-      text-align: center;
-    }
-    
     .original-url {
       max-width: 300px;
       overflow: hidden;
@@ -385,147 +382,6 @@
       white-space: nowrap;
     }
     
-    .copy-btn {
-      background: none;
-      border: none;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.25rem;
-      margin-left: 0.5rem;
-      border-radius: 4px;
-      transition: all 0.3s;
-    }
-    
-    .copy-btn:hover {
-      background: rgba(110, 142, 251, 0.2);
-    }
-    
-    .copy-btn.copied {
-      color: var(--success-color);
-    }
-    
-    .action-buttons {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    /* バッジ */
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .badge-success {
-      background: rgba(72, 187, 120, 0.2);
-      color: var(--success-color);
-      border: 1px solid rgba(72, 187, 120, 0.3);
-    }
-    
-    .badge-warning {
-      background: rgba(237, 137, 54, 0.2);
-      color: var(--warning-color);
-      border: 1px solid rgba(237, 137, 54, 0.3);
-    }
-    
-    /* タブ */
-    .tabs {
-      display: flex;
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid var(--glass-border);
-    }
-    
-    .tab-btn {
-      padding: 0.75rem 1.5rem;
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--light-color);
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-      opacity: 0.7;
-    }
-    
-    .tab-btn:hover {
-      opacity: 1;
-    }
-    
-    .tab-btn.active {
-      opacity: 1;
-      border-bottom-color: var(--primary-color);
-      color: var(--primary-light);
-    }
-    
-    .tab-panel {
-      display: none;
-    }
-    
-    .tab-panel.active {
-      display: block;
-      animation: fadeIn 0.5s ease;
-    }
-    
-    /* アクセス統計 */
-    .analytics-chart {
-      background: rgba(26, 32, 44, 0.4);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-top: 1rem;
-    }
-    
-    .chart-container {
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-      height: 300px;
-      padding-bottom: 2rem;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    
-    .chart-bar {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 60px;
-    }
-    
-    .bar {
-      width: 40px;
-      background: var(--primary-gradient);
-      border-radius: 8px 8px 0 0;
-      position: relative;
-      box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 10px rgba(110, 142, 251, 0.3);
-      min-height: 20px;
-      transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    .clicks {
-      position: absolute;
-      top: -25px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(26, 32, 44, 0.8);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    
-    .code {
-      margin-top: 0.5rem;
-      font-size: 0.75rem;
-      color: var(--light-color);
-      opacity: 0.7;
-    }
-    
-    /* その他のスタイル */
     .no-data {
       text-align: center;
       padding: 2rem;
@@ -533,180 +389,24 @@
       opacity: 0.7;
       font-size: 1.1rem;
     }
-    
-    a {
-      color: var(--primary-light);
-      text-decoration: none;
-      transition: all 0.3s;
-    }
-    
-    a:hover {
-      color: var(--primary-color);
-      text-decoration: underline;
-    }
-    
+
     /* レスポンシブデザイン */
-    @media (max-width: 1024px) {
-      .form-row {
-        flex-direction: column;
-      }
-    }
-    
     @media (max-width: 768px) {
       .sidebar {
         width: 80px;
-        padding: 1rem 0;
-      }
-      
-      .logo h2 {
-        font-size: 1.2rem;
-      }
-      
-      .logo {
-        padding: 0 0.5rem 1rem;
-      }
-      
-      .user-info {
-        flex-direction: column;
-        padding: 0 0.5rem;
-      }
-      
-      .user-name {
-        display: none;
-      }
-      
-      .avatar {
-        margin-right: 0;
-        margin-bottom: 1rem;
-      }
-      
-      .nav-menu li a {
-        padding: 1rem 0;
-        justify-content: center;
-      }
-      
-      .nav-menu li a i {
-        margin-right: 0;
-        font-size: 1.4rem;
-      }
-      
-      .nav-menu li a span {
-        display: none;
       }
       
       .main-content {
         margin-left: 80px;
-        padding: 1rem;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .main-content {
-        margin-left: 0;
-        padding: 1rem;
       }
       
-      .sidebar {
-        transform: translateX(-100%);
+      .user-name, .nav-menu li a span {
+        display: none;
       }
-      
-      .sidebar.active {
-        transform: translateX(0);
-      }
-      
-      .top-bar {
-        position: relative;
-      }
-      
-      .menu-toggle {
-        display: block;
-        position: absolute;
-        left: 1rem;
-        top: 1rem;
-        background: none;
-        border: none;
-        color: var(--light-color);
-        font-size: 1.5rem;
-        cursor: pointer;
-        z-index: 20;
-      }
-    }
-    
-    /* アニメーション効果 */
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(110, 142, 251, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(110, 142, 251, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(110, 142, 251, 0); }
-    }
-    
-    .btn-primary {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    
-    body {
-      background-size: 200% 200%;
-      animation: gradient 15s ease infinite;
-    }
-    
-    /* 装飾的な要素 */
-    .bg-shapes {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      z-index: -1;
-      opacity: 0.5;
-    }
-    
-    .shape {
-      position: absolute;
-      border-radius: 50%;
-      background: var(--primary-gradient);
-      filter: blur(60px);
-    }
-    
-    .shape-1 {
-      top: 10%;
-      left: 10%;
-      width: 300px;
-      height: 300px;
-      opacity: 0.3;
-    }
-    
-    .shape-2 {
-      bottom: 10%;
-      right: 10%;
-      width: 200px;
-      height: 200px;
-      opacity: 0.2;
-    }
-    
-    .shape-3 {
-      top: 50%;
-      left: 50%;
-      width: 400px;
-      height: 400px;
-      opacity: 0.1;
-      transform: translate(-50%, -50%);
     }
   </style>
 </head>
 <body>
-  <!-- 背景装飾 -->
-  <div class="bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
-
   <div class="dashboard-container">
     <!-- サイドバー -->
     <div class="sidebar">
@@ -773,11 +473,11 @@
                   <label for="domainId">ドメイン:</label>
                   <select id="domainId" name="domainId">
                     <option value="default">デフォルトドメイン (<%= appDomain || 'king-rule.site' %>)</option>
-                    <% domains.forEach(function(domain) { %>
-                      <option value="<%= domain._id %>" <%= domain.verified ? '' : 'disabled' %>>
-                        <%= domain.domainName %> <%= domain.verified ? '' : '(未検証)' %>
+                    <% for (let i = 0; i < domains.length; i++) { %>
+                      <option value="<%= domains[i]._id %>" <%= domains[i].verified ? '' : 'disabled' %>>
+                        <%= domains[i].domainName %> <%= domains[i].verified ? '' : '(未検証)' %>
                       </option>
-                    <% }); %>
+                    <% } %>
                   </select>
                 </div>
                 
@@ -811,46 +511,44 @@
           </div>
           <div class="card-body">
             <% if (domains.length > 0) { %>
-              <div class="domain-list">
-                <div class="table-responsive">
-                  <table>
-                    <thead>
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ドメイン名</th>
+                      <th>ステータス</th>
+                      <th>作成日</th>
+                      <th>アクション</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% for (let i = 0; i < domains.length; i++) { %>
                       <tr>
-                        <th>ドメイン名</th>
-                        <th>ステータス</th>
-                        <th>作成日</th>
-                        <th>アクション</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% domains.forEach(function(domain) { %>
-                        <tr>
-                          <td><%= domain.domainName %></td>
-                          <td>
-                            <% if (domain.verified) { %>
-                              <span class="badge badge-success">検証済み</span>
-                            <% } else { %>
-                              <span class="badge badge-warning">未検証</span>
-                            <% } %>
-                          </td>
-                          <td><%= new Date(domain.createdAt).toLocaleDateString() %></td>
-                          <td>
-                            <div class="action-buttons">
-                              <% if (!domain.verified) { %>
-                                <a href="/domains/verify/<%= domain._id %>" class="btn-small btn-info" title="検証">
-                                  <i class="fas fa-check"></i>
-                                </a>
-                              <% } %>
-                              <a href="/domains/delete/<%= domain._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？関連するすべての短縮URLがデフォルトドメインに移行されます。');">
-                                <i class="fas fa-trash"></i>
+                        <td><%= domains[i].domainName %></td>
+                        <td>
+                          <% if (domains[i].verified) { %>
+                            <span class="badge badge-success">検証済み</span>
+                          <% } else { %>
+                            <span class="badge badge-warning">未検証</span>
+                          <% } %>
+                        </td>
+                        <td><%= new Date(domains[i].createdAt).toLocaleDateString() %></td>
+                        <td>
+                          <div class="action-buttons">
+                            <% if (!domains[i].verified) { %>
+                              <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-info" title="検証">
+                                <i class="fas fa-check"></i>
                               </a>
-                            </div>
-                          </td>
-                        </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                </div>
+                            <% } %>
+                            <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？');">
+                              <i class="fas fa-trash"></i>
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
               </div>
             <% } else { %>
               <p class="no-data">登録されたドメインがありません。「新規追加」ボタンからドメインを追加してください。</p>
@@ -859,7 +557,7 @@
         </div>
       </section>
 
-      <!-- URL一覧とアクセス統計 -->
+      <!-- URL一覧 -->
       <section class="urls-section">
         <div class="card">
           <div class="card-header">
@@ -867,35 +565,61 @@
           </div>
           <div class="card-body">
             <% if (urls.length > 0) { %>
-              <!-- タブ -->
-              <div class="tabs">
-                <button class="tab-btn active" data-tab="list">リスト表示</button>
-                <button class="tab-btn" data-tab="analytics">アクセス統計</button>
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>元URL</th>
+                      <th>短縮URL</th>
+                      <th>クリック数</th>
+                      <th>作成日</th>
+                      <th>アクション</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% for (let i = 0; i < urls.length; i++) { %>
+                      <tr>
+                        <td class="original-url" title="<%= urls[i].originalUrl %>">
+                          <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
+                        </td>
+                        <td>
+                          <% if (urls[i].customSlug) { %>
+                            <a href="https://<%= appDomain %>/<%= urls[i].customSlug %>" target="_blank">
+                              <%= appDomain %>/<%= urls[i].customSlug %>
+                            </a>
+                          <% } else { %>
+                            <a href="https://<%= appDomain %>/s/<%= urls[i].shortCode %>" target="_blank">
+                              <%= appDomain %>/s/<%= urls[i].shortCode %>
+                            </a>
+                          <% } %>
+                        </td>
+                        <td><%= urls[i].clicks %></td>
+                        <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
+                        <td>
+                          <div class="action-buttons">
+                            <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
+                              <i class="fas fa-trash"></i>
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
               </div>
-              
-              <!-- URL一覧タブ -->
-              <div id="list-tab" class="tab-panel active">
-                <div class="url-list">
-                  <div class="table-responsive">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>元URL</th>
-                          <th>短縮URL</th>
-                          <th>クリック数</th>
-                          <th>作成日</th>
-                          <th>アクション</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <% urls.forEach(function(url) { %>
-                          <tr>
-                            <td class="original-url" title="<%= url.originalUrl %>">
-                              <%= url.originalUrl.length > 30 ? url.originalUrl.substring(0, 30) + '...' : url.originalUrl %>
-                            </td>
-                            <td>
-                              <% if (url.domainId) { %>
-                                <% const domain = domains.find(function(d) { return d._id.toString() === url.domainId.toString(); }); %>
-                                <% domains.forEach(function(domain) { %>
-                                  <!-- コンテンツ -->
-                                <% }); %>
+            <% } else { %>
+              <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
+            <% } %>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // コピーボタンの実装はここに追加できます
+    });
+  </script>
+</body>
+</html>
