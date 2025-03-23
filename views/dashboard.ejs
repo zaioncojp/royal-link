@@ -773,7 +773,7 @@
                   <label for="domainId">ドメイン:</label>
                   <select id="domainId" name="domainId">
                     <option value="default">デフォルトドメイン (<%= appDomain || 'king-rule.site' %>)</option>
-                    <% domains.forEach(domain => { %>
+                    <% domains.forEach(function(domain) { %>
                       <option value="<%= domain._id %>" <%= domain.verified ? '' : 'disabled' %>>
                         <%= domain.domainName %> <%= domain.verified ? '' : '(未検証)' %>
                       </option>
@@ -823,7 +823,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% domains.forEach(domain => { %>
+                      <% domains.forEach(function(domain) { %>
                         <tr>
                           <td><%= domain.domainName %></td>
                           <td>
@@ -888,17 +888,11 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <% urls.forEach(url => { %>
+                        <% urls.forEach(function(url) { %>
                           <tr>
                             <td class="original-url" title="<%= url.originalUrl %>">
                               <%= url.originalUrl.length > 30 ? url.originalUrl.substring(0, 30) + '...' : url.originalUrl %>
                             </td>
                             <td>
                               <% if (url.domainId) { %>
-                                <% const domain = domains.find(d => d._id.toString() === url.domainId.toString()); %>
-                                <% if (domain) { %>
-                                  <a href="https://<%= domain.domainName %>/<%= url.customSlug %>" target="_blank">
-                                    <%= domain.domainName %>/<%= url.customSlug %>
-                                  </a>
-                                <% } else { %>
-                                  <a href="https://<%= appDomain %>
+                                <% const domain = domains.find(function(d) { return d._id.toString() === url.domainId.toString(); }); %>
