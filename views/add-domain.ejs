@@ -4,10 +4,602 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ドメイン追加 - ROYAL LINK</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --primary-light: #818cf8;
+      --primary-dark: #4f46e5;
+      --accent-color: #ec4899;
+      --accent-hover: #db2777;
+      --dark-color: #111827;
+      --light-color: #f9fafb;
+      --text-color: #f3f4f6;
+      --text-muted: #9ca3af;
+      --card-bg: rgba(31, 41, 55, 0.7);
+      --card-border: rgba(255, 255, 255, 0.05);
+      --glass-bg: rgba(31, 41, 55, 0.6);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --hover-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(to right, #111827, #1f2937, #374151);
+      color: var(--text-color);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Canvas animations */
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.2;
+    }
+    
+    /* Container styles */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 2rem 0;
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      transition: var(--hover-transition);
+      border-right: 1px solid var(--card-border);
+    }
+    
+    .logo {
+      padding: 0 1.5rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 2rem;
+    }
+    
+    .logo h2 {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-size: 1.8rem;
+      text-transform: uppercase;
+    }
+    
+    .nav-menu ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .nav-menu li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .nav-menu li a {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      color: var(--text-color);
+      text-decoration: none;
+      transition: var(--hover-transition);
+      border-left: 3px solid transparent;
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-menu li a::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: var(--hover-transition);
+    }
+    
+    .nav-menu li a:hover::before {
+      left: 100%;
+    }
+    
+    .nav-menu li a i {
+      margin-right: 1rem;
+      font-size: 1.2rem;
+      position: relative;
+      z-index: 1;
+      transition: var(--hover-transition);
+      color: var(--text-muted);
+    }
+    
+    .nav-menu li a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-left-color: var(--accent-color);
+    }
+    
+    .nav-menu li a:hover i {
+      color: var(--accent-color);
+      transform: translateX(5px);
+    }
+    
+    .nav-menu li.active a {
+      background: rgba(255, 255, 255, 0.05);
+      border-left-color: var(--primary-light);
+    }
+    
+    .nav-menu li.active a i {
+      color: var(--primary-light);
+    }
+    
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      margin-left: 260px;
+      max-width: 1200px;
+      margin: 0 auto 0 260px;
+    }
+    
+    .top-bar {
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    
+    .top-bar h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0;
+      position: relative;
+    }
+    
+    .top-bar h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      border-radius: 2px;
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      transition: var(--hover-transition);
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(17, 24, 39, 0.7);
+    }
+    
+    .card-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-header h2 i {
+      margin-right: 10px;
+      color: var(--accent-color);
+      font-size: 1.2rem;
+    }
+    
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    /* Form controls */
+    .domain-form {
+      margin-bottom: 2rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      font-size: 0.875rem;
+      letter-spacing: 0.025em;
+      color: var(--text-color);
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      color: var(--text-color);
+      font-size: 1rem;
+      transition: var(--hover-transition);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+    
+    .form-group input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    
+    .form-group small {
+      display: block;
+      margin-top: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--hover-transition);
+      text-decoration: none;
+      border: none;
+      outline: none;
+      font-size: 0.875rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: var(--hover-transition);
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary:hover::after {
+      left: 100%;
+    }
+    
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn i {
+      margin-right: 0.5rem;
+    }
+    
+    /* Info box */
+    .info-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+    
+    .info-box h3 {
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+      color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+    }
+    
+    .info-box h3 i {
+      margin-right: 0.5rem;
+      color: var(--primary-light);
+    }
+    
+    .info-box ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1.5rem;
+      counter-reset: item;
+    }
+    
+    .info-box ol li {
+      margin-bottom: 0.75rem;
+      counter-increment: item;
+      position: relative;
+      padding-left: 0.5rem;
+    }
+    
+    .info-box ol li::marker {
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+    
+    .info-box .note {
+      font-style: italic;
+      opacity: 0.7;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .info-box .note::before {
+      content: '\f05a';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      margin-right: 0.5rem;
+      color: var(--text-muted);
+    }
+    
+    /* Benefits section */
+    .benefits {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    
+    .benefit-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      transition: var(--hover-transition);
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .benefit-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      border-radius: 4px;
+    }
+    
+    .benefit-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    .benefit-icon {
+      color: var(--accent-color);
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+      transition: var(--hover-transition);
+    }
+    
+    .benefit-item:hover .benefit-icon {
+      transform: scale(1.1);
+      color: var(--primary-light);
+    }
+    
+    .benefit-content h3 {
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--primary-light);
+    }
+    
+    .benefit-content p {
+      opacity: 0.9;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      margin-bottom: 0;
+    }
+    
+    /* Alert styles */
+    .alert {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid;
+      display: flex;
+      align-items: flex-start;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .alert i {
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
+      margin-top: 0.125rem;
+    }
+    
+    .alert-error {
+      border-color: var(--danger);
+    }
+    
+    .alert-error i {
+      color: var(--danger);
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 1024px) {
+      .benefits {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 80px;
+        padding: 1.5rem 0;
+      }
+      
+      .logo h2 {
+        font-size: 1rem;
+      }
+      
+      .nav-menu li a {
+        padding: 1rem 0;
+        justify-content: center;
+      }
+      
+      .nav-menu li a span {
+        display: none;
+      }
+      
+      .nav-menu li a i {
+        margin-right: 0;
+        font-size: 1.5rem;
+      }
+      
+      .main-content {
+        margin-left: 80px;
+        padding: 1.5rem;
+      }
+      
+      .top-bar h1 {
+        font-size: 2rem;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .top-bar h1 {
+        font-size: 1.75rem;
+      }
+      
+      .main-content {
+        padding: 1rem;
+      }
+      
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .card-header h2 {
+        margin-bottom: 1rem;
+      }
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+      0% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+      100% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    /* Floating particles */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
+  <!-- Animated background -->
+  <div class="particles" id="particles"></div>
+  <div id="canvas-container"></div>
+
   <div class="dashboard-container">
     <!-- サイドバー -->
     <div class="sidebar">
@@ -16,9 +608,9 @@
       </div>
       <nav class="nav-menu">
         <ul>
-          <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> ダッシュボード</a></li>
-          <li class="active"><a href="/domains/add"><i class="fas fa-globe"></i> ドメイン追加</a></li>
-          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> ログアウト</a></li>
+          <li><a href="/dashboard"><i class="fas fa-chart-pie"></i> <span>ダッシュボード</span></a></li>
+          <li class="active"><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
+          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
         </ul>
       </nav>
     </div>
@@ -26,7 +618,7 @@
     <!-- メインコンテンツ -->
     <div class="main-content">
       <header class="top-bar">
-        <h1>ドメイン追加</h1>
+        <h1>カスタムドメイン</h1>
       </header>
 
       <% if (error) { %>
@@ -38,12 +630,12 @@
       <section class="domain-add-section">
         <div class="card">
           <div class="card-header">
-            <h2>新しいドメインを追加</h2>
+            <h2><i class="fas fa-plus-circle"></i> 新しいドメインを追加</h2>
           </div>
           <div class="card-body">
             <form action="/domains/add" method="POST" class="domain-form">
               <div class="form-group">
-                <label for="domainName">ドメイン名:</label>
+                <label for="domainName">ドメイン名</label>
                 <input 
                   type="text" 
                   id="domainName" 
@@ -54,7 +646,9 @@
                 <small>所有している独自ドメインを入力してください</small>
               </div>
               
-              <button type="submit" class="btn-primary">ドメインを追加</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> ドメインを追加
+              </button>
             </form>
 
             <div class="info-box">
@@ -65,14 +659,14 @@
                 <li>検証ページの指示に従ってドメインのDNS設定を行ってください</li>
                 <li>DNS設定が反映されたら（通常数時間以内）、検証を完了できます</li>
               </ol>
-              <p class="note">※DNSの反映には時間がかかる場合があります（最大48時間）</p>
+              <p class="note">DNSの反映には時間がかかる場合があります（最大48時間）</p>
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <h2>ドメイン利用のメリット</h2>
+            <h2><i class="fas fa-star"></i> ドメイン利用のメリット</h2>
           </div>
           <div class="card-body">
             <div class="benefits">
@@ -80,15 +674,15 @@
                 <div class="benefit-icon"><i class="fas fa-link"></i></div>
                 <div class="benefit-content">
                   <h3>ブランディング強化</h3>
-                  <p>あなたのブランドを短縮URLにも反映させることができます。</p>
+                  <p>あなたのブランドを短縮URLにも反映させることができます。ユーザーの信頼獲得に効果的です。</p>
                 </div>
               </div>
               
               <div class="benefit-item">
-                <div class="benefit-icon"><i class="fas fa-lock"></i></div>
+                <div class="benefit-icon"><i class="fas fa-shield-alt"></i></div>
                 <div class="benefit-content">
                   <h3>信頼性向上</h3>
-                  <p>独自ドメインを使用することで、リンクの信頼性が高まります。</p>
+                  <p>独自ドメインを使用することで、リンクの信頼性が高まり、クリック率が向上します。</p>
                 </div>
               </div>
               
@@ -96,7 +690,7 @@
                 <div class="benefit-icon"><i class="fas fa-chart-line"></i></div>
                 <div class="benefit-content">
                   <h3>クリック数向上</h3>
-                  <p>ブランド名を含むURLはクリック率が高まる傾向があります。</p>
+                  <p>ブランド名を含むURLはクリック率が高まる傾向があります。マーケティング効果を最大化しましょう。</p>
                 </div>
               </div>
             </div>
@@ -105,5 +699,101 @@
       </section>
     </div>
   </div>
+
+  <script>
+    // パーティクルアニメーション
+    document.addEventListener('DOMContentLoaded', function() {
+      // パーティクル生成
+      const particlesContainer = document.getElementById('particles');
+      const numParticles = 30;
+      const colors = ['#6366f1', '#818cf8', '#ec4899', '#8b5cf6'];
+      
+      for (let i = 0; i < numParticles; i++) {
+        const size = Math.random() * 8 + 2;
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.filter = `blur(${Math.random() * 2}px)`;
+        particle.style.opacity = Math.random() * 0.3 + 0.1;
+        
+        // アニメーション
+        const duration = Math.random() * 30 + 20;
+        const x = Math.random() * 100 - 50;
+        const y = Math.random() * 100 - 50;
+        
+        particle.style.animation = `moveParticle ${duration}s linear infinite`;
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        particlesContainer.appendChild(particle);
+      }
+      
+      // Canvas アニメーション
+      const container = document.getElementById('canvas-container');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      container.appendChild(canvas);
+      
+      // キャンバスサイズ設定
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // 波アニメーション設定
+      const waves = [
+        { y: canvas.height * 0.3, length: 200, amplitude: 20, speed: 0.03, color: 'rgba(99, 102, 241, 0.03)' },
+        { y: canvas.height * 0.5, length: 150, amplitude: 15, speed: 0.04, color: 'rgba(236, 72, 153, 0.03)' },
+        { y: canvas.height * 0.7, length: 100, amplitude: 25, speed: 0.02, color: 'rgba(139, 92, 246, 0.03)' }
+      ];
+      
+      let time = 0;
+      
+      // アニメーションループ
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        waves.forEach(wave => {
+          ctx.beginPath();
+          ctx.moveTo(0, wave.y);
+          
+          for (let x = 0; x < canvas.width; x++) {
+            const y = wave.y + Math.sin(x / wave.length + time * wave.speed) * wave.amplitude;
+            ctx.lineTo(x, y);
+          }
+          
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.lineTo(0, canvas.height);
+          ctx.closePath();
+          
+          ctx.fillStyle = wave.color;
+          ctx.fill();
+        });
+        
+        time++;
+        requestAnimationFrame(animate);
+      }
+      
+      animate();
+    });
+  </script>
+  
+  <style>
+    @keyframes moveParticle {
+      0% {
+        transform: translate(0, 0);
+      }
+      100% {
+        transform: translate(var(--x), var(--y));
+      }
+    }
+  </style>
 </body>
 </html>

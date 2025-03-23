@@ -461,6 +461,7 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
   
   try {
     let url = null;
+    let shortUrl = '';
     
     if (domainId && domainId !== 'default') {
       const domain = await Domain.findOne({ 
@@ -490,6 +491,8 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
           domainId: domain._id,
           customSlug
         });
+        
+        shortUrl = `https://${domain.domainName}/${customSlug}`;
       } else {
         const randomSlug = shortid.generate();
         url = new Url({
@@ -499,24 +502,31 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
           domainId: domain._id,
           customSlug: randomSlug
         });
+        
+        shortUrl = `https://${domain.domainName}/${randomSlug}`;
       }
     } else {
       // デフォルトドメイン(king-rule.site)を使用
+      const shortCode = shortid.generate();
       url = new Url({
         userId: req.session.userId,
         originalUrl,
-        shortCode: shortid.generate()
+        shortCode
       });
+      
+      shortUrl = `https://${DOMAIN}/s/${shortCode}`;
     }
     
     console.log('新しいURL作成:', url);
     await url.save();
+    console.log('短縮URL:', shortUrl);
     
-    res.redirect('/dashboard?success=短縮URLが作成されました');
+    // 成功メッセージに短縮URLを含める
+    return res.redirect(`/dashboard?success=短縮URLが作成されました: ${shortUrl}`);
     
   } catch (err) {
     console.error(err);
-    res.redirect('/dashboard?error=URL短縮中にエラーが発生しました: ' + err.message);
+    return res.redirect('/dashboard?error=URL短縮中にエラーが発生しました: ' + err.message);
   }
 });
 
