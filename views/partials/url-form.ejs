@@ -1,0 +1,91 @@
+<section class="url-shorten-section">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-link"></i> 新しいURLを短縮</h2>
+    </div>
+    <div class="card-body">
+      <form action="/shorten" method="POST" class="url-form">
+        <div class="form-group">
+          <label for="originalUrl">元のURL:</label>
+          <input 
+            type="text" 
+            id="originalUrl" 
+            name="originalUrl" 
+            placeholder="https://example.com/long-url-to-shorten" 
+            required
+          >
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="domainId">ドメイン:</label>
+            <select id="domainId" name="domainId">
+              <option value="default">デフォルトドメイン (<%= appDomain || 'king-rule.site' %>)</option>
+              <% for (let i = 0; i < domains.length; i++) { %>
+                <option value="<%= domains[i]._id %>" <%= domains[i].verified ? '' : 'disabled' %>>
+                  <%= domains[i].domainName %> <%= domains[i].verified ? '' : '(未検証)' %>
+                </option>
+              <% } %>
+            </select>
+          </div>
+          
+          <div class="form-group" id="customSlugGroup">
+            <label for="customSlug">カスタムスラグ (オプション):</label>
+            <input 
+              type="text" 
+              id="customSlug" 
+              name="customSlug" 
+              placeholder="my-custom-url"
+              pattern="[a-zA-Z0-9-_]+"
+              title="英数字、ハイフン、アンダースコアのみ使用できます"
+            >
+          </div>
+        </div>
+        
+        <button type="submit" class="btn-primary">短縮する</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* URL短縮フォーム専用スタイル */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--light-color);
+  }
+  
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--light-color);
+    font-size: 1rem;
+    transition: all 0.3s;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.3);
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .form-row .form-group {
+    flex: 1;
+  }
+</style>

@@ -13,6 +13,9 @@ mongoose.set('strictQuery', true);
 
 const app = express();
 
+// プロキシ設定（Renderなどの環境用）
+app.set('trust proxy', 1);
+
 // 環境変数の設定
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -40,19 +43,28 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDBに接続しました'))
   .catch(err => console.error('MongoDB接続エラー:', err));
 
-// セッション設定（MongoDBセッションストアを使用）
+// MongoDBセッションストア接続確認
+const sessionStore = MongoStore.create({
+  mongoUrl: MONGO_URI,
+  ttl: 60 * 60 * 24, // 1日
+  autoRemove: 'native',
+  touchAfter: 24 * 3600 // 24時間ごとに更新
+});
+
+sessionStore.on('error', function(error) {
+  console.error('セッションストアエラー:', error);
+});
+
+// セッション設定
 app.use(session({
   secret: process.env.SESSION_SECRET || 'royal-link-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: { 
     maxAge: 1000 * 60 * 60 * 24, // 24時間
-    secure: process.env.NODE_ENV === 'production'
+    secure: false // HTTPSが完全に設定されるまでfalseに設定
   },
-  store: MongoStore.create({
-    mongoUrl: MONGO_URI,
-    ttl: 60 * 60 * 24 // セッションの有効期限（秒単位）- 1日
-  })
+  store: sessionStore
 }));
 
 // ユーザーモデル
@@ -94,7 +106,8 @@ const Url = mongoose.model('Url', urlSchema);
 
 // 認証チェックミドルウェア
 const isAuthenticated = (req, res, next) => {
-  console.log('認証チェック、セッション:', req.session);
+  console.log('認証チェック、セッション:', JSON.stringify(req.session));
+  console.log('Cookie情報:', req.headers.cookie);
   
   if (req.session && req.session.userId) {
     console.log('認証成功:', req.session.userId);
@@ -110,7 +123,7 @@ app.get('/:slug', async (req, res, next) => {
   const slug = req.params.slug;
   
   // システムページ用のパスはスキップ
-  if (['login', 'register', 'dashboard', 'domains', 'logout', 's'].includes(slug)) {
+  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp'].includes(slug)) {
     return next();
   }
   
@@ -192,9 +205,18 @@ app.post('/login', async (req, res) => {
     console.log('ログイン成功、セッション設定:', user._id);
     req.session.userId = user._id;
     
-    // 明示的にダッシュボードへリダイレクト
-    console.log('ダッシュボードへリダイレクト');
-    return res.redirect('/dashboard');
+    // セッションの保存を確認
+    req.session.save((err) => {
+      if (err) {
+        console.error('セッション保存エラー:', err);
+        // 一時的な対策としてクエリパラメータでIDを渡す
+        return res.redirect(`/dashboard-temp?userId=${user._id}`);
+      }
+      
+      console.log('セッション保存成功:', req.session);
+      console.log('ダッシュボードへリダイレクト');
+      return res.redirect('/dashboard');
+    });
   } catch (err) {
     console.error('ログインエラー:', err);
     return res.render('login', { error: 'ログイン処理中にエラーが発生しました: ' + err.message });
@@ -249,8 +271,18 @@ app.post('/register', async (req, res) => {
     console.log('セッション設定');
     req.session.userId = newUser._id;
     
-    console.log('ダッシュボードへリダイレクト');
-    res.redirect('/dashboard');
+    // セッションの保存を確認
+    req.session.save((err) => {
+      if (err) {
+        console.error('セッション保存エラー:', err);
+        // 一時的な対策としてクエリパラメータでIDを渡す
+        return res.redirect(`/dashboard-temp?userId=${newUser._id}`);
+      }
+      
+      console.log('セッション保存成功:', req.session);
+      console.log('ダッシュボードへリダイレクト');
+      return res.redirect('/dashboard');
+    });
   } catch (err) {
     console.error('登録エラー詳細:', err);
     res.render('register', { error: '登録中にエラーが発生しました: ' + err.message });
@@ -297,6 +329,41 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       success: null,
       appDomain: req.appDomain || 'king-rule.site'
     }, { async: true });
+  }
+});
+
+// 一時的なダッシュボードルート追加（セッション問題の回避策）
+app.get('/dashboard-temp', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) {
+      return res.redirect('/login');
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.redirect('/login');
+    }
+    
+    // 通常のダッシュボードと同じ処理
+    const urls = await Url.find({ userId }).sort({ createdAt: -1 });
+    const domains = await Domain.find({ userId });
+    
+    // セッションに再度ユーザーIDを設定
+    req.session.userId = userId;
+    req.session.save();
+    
+    return res.render('dashboard', {
+      urls,
+      domains,
+      user,
+      error: req.query.error || null,
+      success: req.query.success || null,
+      appDomain: req.appDomain || 'king-rule.site'
+    }, { async: true });
+  } catch (err) {
+    console.error('一時ダッシュボード表示エラー:', err);
+    return res.redirect('/login');
   }
 });
 
@@ -504,6 +571,14 @@ app.get('/s/:code', async (req, res) => {
     console.error(err);
     res.render('404', { message: 'リダイレクト中にエラーが発生しました: ' + err.message });
   }
+});
+
+// エラーページ
+app.get('/error', (req, res) => {
+  res.render('error', { 
+    message: req.query.message || '内部サーバーエラーが発生しました',
+    error: {}
+  });
 });
 
 // エラーハンドリングミドルウェア

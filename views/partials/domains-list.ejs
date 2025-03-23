@@ -1,0 +1,60 @@
+<section class="domains-section">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-globe"></i> マイドメイン</h2>
+      <a href="/domains/add" class="btn-small">
+        <i class="fas fa-plus"></i> 新規追加
+      </a>
+    </div>
+    <div class="card-body">
+      <% if (domains.length > 0) { %>
+        <div class="domain-list">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ドメイン名</th>
+                  <th>ステータス</th>
+                  <th>作成日</th>
+                  <th>アクション</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% for (let i = 0; i < domains.length; i++) { %>
+                  <tr>
+                    <td><%= domains[i].domainName %></td>
+                    <td>
+                      <% if (domains[i].verified) { %>
+                        <span class="badge badge-success">検証済み</span>
+                      <% } else { %>
+                        <span class="badge badge-warning">未検証</span>
+                      <% } %>
+                    </td>
+                    <td><%= new Date(domains[i].createdAt).toLocaleDateString() %></td>
+                    <td>
+                      <div class="action-buttons">
+                        <% if (!domains[i].verified) { %>
+                          <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-info" title="検証">
+                            <i class="fas fa-check"></i>
+                          </a>
+                        <% } %>
+                        <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？関連するすべての短縮URLがデフォルトドメインに移行されます。');">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% } else { %>
+        <p class="no-data">登録されたドメインがありません。「新規追加」ボタンからドメインを追加してください。</p>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ドメイン一覧専用スタイル

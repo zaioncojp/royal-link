@@ -1,0 +1,131 @@
+<div class="sidebar">
+  <div class="logo">
+    <h2>ROYAL LINK</h2>
+  </div>
+  <div class="user-info">
+    <div class="avatar">
+      <i class="fas fa-user"></i>
+    </div>
+    <div class="user-name">
+      <%= user.username %>
+    </div>
+  </div>
+  <nav class="nav-menu">
+    <ul>
+      <li class="active"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>ダッシュボード</span></a></li>
+      <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
+      <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
+    </ul>
+  </nav>
+</div>
+
+<style>
+  /* サイドバー専用スタイル */
+  .sidebar {
+    width: 260px;
+    background: rgba(26, 32, 44, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 2rem 0;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 10;
+    border-right: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+  
+  .logo {
+    padding: 0 1.5rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 2rem;
+  }
+  
+  .logo h2 {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-size: 1.8rem;
+    text-shadow: var(--neon-glow);
+  }
+  
+  .user-info {
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: var(--neon-glow);
+  }
+  
+  .avatar i {
+    font-size: 1.5rem;
+    color: white;
+  }
+  
+  .user-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  
+  .nav-menu ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .nav-menu li {
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+  
+  .nav-menu li a {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    color: var(--light-color);
+    text-decoration: none;
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+    font-weight: 500;
+  }
+  
+  .nav-menu li a i {
+    margin-right: 1rem;
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  
+  .nav-menu li a:hover {
+    background: var(--glass-bg);
+    border-left-color: var(--primary-light);
+  }
+  
+  .nav-menu li a:hover i {
+    transform: translateX(5px);
+  }
+  
+  .nav-menu li.active a {
+    background: var(--glass-bg);
+    border-left-color: var(--primary-color);
+    box-shadow: inset 0 0 10px rgba(110, 142, 251, 0.1);
+  }
+  
+  .nav-menu li.active a i {
+    color: var(--primary-light);
+  }
+</style>
