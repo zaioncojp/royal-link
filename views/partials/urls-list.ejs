@@ -72,31 +72,116 @@
         <div id="analytics-tab" class="tab-panel">
           <div class="analytics-chart">
             <h3>時間帯別アクセス統計</h3>
-            <div class="chart-container">
-              <% 
-                // 時間帯別のクリック数集計
-                const hourlyStats = Array(24).fill(0);
+            <div class="chart-wrapper">
+              <div class="chart-y-axis">
+                <% 
+                  // 時間帯別のクリック数集計
+                  const hourlyStats = Array(24).fill(0);
+                  
+                  urls.forEach(url => {
+                    if (url.accessLogs && url.accessLogs.length > 0) {
+                      url.accessLogs.forEach(log => {
+                        const hour = new Date(log.timestamp).getHours();
+                        hourlyStats[hour]++;
+                      });
+                    }
+                  });
+                  
+                  const maxHourlyClicks = Math.max(...hourlyStats, 1);
+                  // Y軸のラベルを生成
+                  const yAxisLabels = [];
+                  const numLabels = 5;
+                  for (let i = 0; i <= numLabels; i++) {
+                    yAxisLabels.push(Math.round((maxHourlyClicks / numLabels) * i));
+                  }
+                %>
+                <% for (let i = numLabels; i >= 0; i--) { %>
+                  <div class="axis-label"><%= yAxisLabels[i] %></div>
+                <% } %>
+              </div>
+              <div class="chart-container hour-chart">
+                <div class="chart-grid">
+                  <% for (let i = 0; i <= numLabels; i++) { %>
+                    <div class="grid-line"></div>
+                  <% } %>
+                </div>
+                <% for (let i = 0; i < 24; i++) { %>
+                  <div class="chart-bar">
+                    <div class="bar-tooltip">
+                      <%= hourlyStats[i] %> クリック (<%= i %>:00 - <%= i+1 %>:00)
+                    </div>
+                    <div class="bar" style="height: <%= Math.max(1, (hourlyStats[i] / maxHourlyClicks) * 100) %>%">
+                      <span class="bar-value"><%= hourlyStats[i] %></span>
+                    </div>
+                    <span class="hour-label"><%= i %>:00</span>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          
+          <div class="analytics-summary">
+            <h3>アクセス概要</h3>
+            <div class="summary-grid">
+              <%
+                // 合計クリック数
+                const totalClicks = urls.reduce((sum, url) => sum + (url.clicks || 0), 0);
                 
-                urls.forEach(url => {
-                  if (url.accessLogs && url.accessLogs.length > 0) {
-                    url.accessLogs.forEach(log => {
-                      const hour = new Date(log.timestamp).getHours();
-                      hourlyStats[hour]++;
-                    });
+                // 一日あたりの平均クリック数
+                const oldestUrlDate = urls.reduce((oldest, url) => {
+                  const createDate = new Date(url.createdAt);
+                  return createDate < oldest ? createDate : oldest;
+                }, new Date());
+                
+                const daysSinceOldest = Math.max(1, Math.ceil((new Date() - oldestUrlDate) / (1000 * 60 * 60 * 24)));
+                const avgClicksPerDay = Math.round((totalClicks / daysSinceOldest) * 10) / 10;
+                
+                // 最もアクセスの多い時間帯
+                let peakHour = 0;
+                let peakCount = 0;
+                hourlyStats.forEach((count, hour) => {
+                  if (count > peakCount) {
+                    peakCount = count;
+                    peakHour = hour;
                   }
                 });
                 
-                const maxHourlyClicks = Math.max(...hourlyStats, 1);
+                // 最もアクセスの少ない時間帯
+                const activeHours = hourlyStats.filter(count => count > 0);
+                let minHour = 0;
+                let minCount = activeHours.length > 0 ? Math.min(...activeHours) : 0;
+                if (minCount > 0) {
+                  hourlyStats.forEach((count, hour) => {
+                    if (count === minCount) {
+                      minHour = hour;
+                    }
+                  });
+                }
               %>
               
-              <% for (let i = 0; i < 24; i++) { %>
-                <div class="chart-bar">
-                  <div class="bar" style="height: <%= Math.max(20, (hourlyStats[i] / maxHourlyClicks) * 250) %>px">
-                    <span class="clicks"><%= hourlyStats[i] %></span>
-                  </div>
-                  <span class="code"><%= i %>:00</span>
-                </div>
-              <% } %>
+              <div class="summary-card">
+                <i class="fas fa-mouse-pointer"></i>
+                <h4>総クリック数</h4>
+                <p><%= totalClicks %></p>
+              </div>
+              
+              <div class="summary-card">
+                <i class="fas fa-calendar-day"></i>
+                <h4>1日平均</h4>
+                <p><%= avgClicksPerDay %> クリック</p>
+              </div>
+              
+              <div class="summary-card">
+                <i class="fas fa-clock"></i>
+                <h4>最もアクセスが多い時間帯</h4>
+                <p><%= peakHour %>:00 - <%= peakHour + 1 %>:00 (<%= peakCount %> クリック)</p>
+              </div>
+              
+              <div class="summary-card">
+                <i class="fas fa-moon"></i>
+                <h4>最もアクセスが少ない時間帯</h4>
+                <p><%= minCount > 0 ? `${minHour}:00 - ${minHour + 1}:00 (${minCount} クリック)` : 'データなし' %></p>
+              </div>
             </div>
           </div>
           
@@ -111,8 +196,12 @@
               
               <% for (let i = 0; i < sortedUrls.length && i < 8; i++) { %>
                 <div class="chart-bar">
+                  <div class="bar-tooltip">
+                    <%= sortedUrls[i].originalUrl.substring(0, 50) %><%= sortedUrls[i].originalUrl.length > 50 ? '...' : '' %>
+                    <br><%= sortedUrls[i].clicks || 0 %> クリック
+                  </div>
                   <div class="bar popular-bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
-                    <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
+                    <span class="bar-value"><%= sortedUrls[i].clicks || 0 %></span>
                   </div>
                   <span class="code" title="<%= sortedUrls[i].originalUrl %>">
                     <%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %>
@@ -154,6 +243,27 @@
           .catch(err => {
             console.error('コピーに失敗しました:', err);
           });
+      });
+    });
+    
+    // ツールチップ効果
+    const chartBars = document.querySelectorAll('.chart-bar');
+    
+    chartBars.forEach(bar => {
+      bar.addEventListener('mouseenter', function() {
+        const tooltip = this.querySelector('.bar-tooltip');
+        if (tooltip) {
+          tooltip.style.opacity = '1';
+          tooltip.style.visibility = 'visible';
+        }
+      });
+      
+      bar.addEventListener('mouseleave', function() {
+        const tooltip = this.querySelector('.bar-tooltip');
+        if (tooltip) {
+          tooltip.style.opacity = '0';
+          tooltip.style.visibility = 'hidden';
+        }
       });
     });
   });
@@ -209,38 +319,111 @@
     opacity: 0.9;
   }
   
+  /* 新しいグラフスタイル */
+  .chart-wrapper {
+    display: flex;
+    height: 350px;
+    position: relative;
+  }
+  
+  .chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 10px;
+    width: 40px;
+  }
+  
+  .axis-label {
+    font-size: 0.7rem;
+    text-align: right;
+    color: var(--light-color);
+    opacity: 0.7;
+  }
+  
   .chart-container {
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
     height: 300px;
     padding-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
+    gap: 0;
+    flex: 1;
+    position: relative;
   }
+  
+  .hour-chart {
+    overflow-x: auto;
+    padding-bottom: 30px;
+  }
+  
+  .chart-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+  
+  .grid-line {
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .grid-line:nth-child(1) { bottom: 0; }
+  .grid-line:nth-child(2) { bottom: 20%; }
+  .grid-line:nth-child(3) { bottom: 40%; }
+  .grid-line:nth-child(4) { bottom: 60%; }
+  .grid-line:nth-child(5) { bottom: 80%; }
+  .grid-line:nth-child(6) { bottom: 100%; }
   
   .chart-bar {
     display: flex;
     flex-direction: column;
     align-items: center;
     min-width: 40px;
-    margin: 0 0.2rem;
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    flex: 1;
   }
   
   .bar {
-    width: 40px;
+    width: 30px;
     background: var(--primary-gradient);
     border-radius: 8px 8px 0 0;
-    position: relative;
+    position: absolute;
+    bottom: 30px;
     box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 10px rgba(110, 142, 251, 0.3);
-    min-height: 20px;
+    min-height: 1%;
     transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     animation: growUp 1s ease-out forwards;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .bar-value {
+    position: absolute;
+    top: -20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .hour-label {
+    position: absolute;
+    bottom: 10px;
+    font-size: 0.75rem;
+    color: var(--light-color);
+    opacity: 0.7;
   }
   
   @keyframes growUp {
-    from { height: 0; }
-    to { height: auto; }
+    from { height: 0%; }
+    to { height: var(--target-height); }
   }
   
   .bar.popular-bar {
@@ -248,17 +431,43 @@
     box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1), 0 0 10px rgba(255, 107, 107, 0.3);
   }
   
-  .clicks {
+  .bar-tooltip {
     position: absolute;
-    top: -25px;
+    top: -50px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(26, 32, 44, 0.8);
-    padding: 0.25rem 0.5rem;
+    background: rgba(26, 32, 44, 0.95);
+    padding: 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 400;
     white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 200px;
+    text-align: center;
+    pointer-events: none;
+  }
+  
+  .bar-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid rgba(26, 32, 44, 0.95);
+  }
+  
+  .chart-bar:hover .bar {
+    filter: brightness(1.2);
   }
   
   .code {
@@ -271,6 +480,62 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: absolute;
+    bottom: -5px;
+  }
+  
+  /* サマリーカード */
+  .analytics-summary {
+    margin-top: 2rem;
+    background: rgba(26, 32, 44, 0.4);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .summary-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .summary-card i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  
+  .summary-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--light-color);
+    opacity: 0.9;
+  }
+  
+  .summary-card p {
+    font-size: 1.25rem;
+    font-weight: 600;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   
   .mt-4 {
@@ -306,17 +571,35 @@
     color: var(--primary-light);
   }
   
+  /* ここが重要: タブパネルの表示/非表示スタイル */
   .tab-panel {
-    display: none;
+    display: none !important;
   }
   
   .tab-panel.active {
-    display: block;
+    display: block !important;
     animation: fadeIn 0.5s ease;
   }
   
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .summary-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .hour-chart {
+      min-width: 960px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .summary-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
