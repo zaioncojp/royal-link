@@ -1,4 +1,3 @@
-// models/Subscription.js
 const mongoose = require('mongoose');
 
 const subscriptionSchema = new mongoose.Schema({
@@ -19,20 +18,24 @@ const subscriptionSchema = new mongoose.Schema({
   },
   planType: {
     type: String,
-    default: 'premium'
+    enum: ['monthly', 'annual'],
+    default: 'monthly'
   },
   startDate: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    required: true
   },
   endDate: {
     type: Date
   },
   lastPaymentDate: {
-    type: Date
+    type: Date,
+    default: Date.now
   },
   nextPaymentDate: {
-    type: Date
+    type: Date,
+    required: true
   },
   paymentHistory: [{
     paymentId: String,
@@ -44,74 +47,54 @@ const subscriptionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  // 失敗した支払いの回数
-  failedPayments: {
-    type: Number,
-    default: 0
+  features: {
+    customDomains: {
+      type: Boolean,
+      default: true
+    },
+    customSlugs: {
+      type: Boolean,
+      default: true
+    },
+    unlimitedUrls: {
+      type: Boolean,
+      default: true
+    },
+    prioritySupport: {
+      type: Boolean,
+      default: false
+    }
   },
-  // メタデータ（追加情報）
   metadata: {
-    type: Map,
-    of: String
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
-// メソッド: 有効期限が切れているか確認
-subscriptionSchema.methods.isExpired = function() {
-  if (this.status === 'expired') return true;
-  if (this.status === 'cancelled' && this.endDate && new Date() > this.endDate) return true;
-  return false;
-};
-
-// メソッド: アクティブか確認
-subscriptionSchema.methods.isActive = function() {
-  return this.status === 'active';
-};
-
-// メソッド: キャンセルされたか確認
-subscriptionSchema.methods.isCancelled = function() {
-  return this.status === 'cancelled';
-};
-
-// 静的メソッド: ユーザーのアクティブなサブスクリプションを取得
-subscriptionSchema.statics.findActiveByUserId = function(userId) {
-  return this.findOne({
-    userId: userId,
-    status: 'active'
-  });
-};
-
-// Webhookから支払い情報を更新
-subscriptionSchema.methods.updateFromPayment = function(paymentData) {
-  if (!this.paymentHistory) {
-    this.paymentHistory = [];
+// プランタイプに基づいて機能を設定
+subscriptionSchema.pre('save', function(next) {
+  if (this.isNew || this.isModified('planType')) {
+    if (this.planType === 'annual') {
+      this.features.prioritySupport = true;
+    }
   }
-  
-  this.paymentHistory.push({
-    paymentId: paymentData.id,
-    amount: parseFloat(paymentData.amount.value),
-    currency: paymentData.amount.currency_code,
-    status: paymentData.status,
-    date: new Date(paymentData.time)
-  });
-  
-  this.lastPaymentDate = new Date();
-  
-  // 失敗した場合
-  if (paymentData.status === 'failed') {
-    this.failedPayments += 1;
-  } else {
-    // 成功した場合はリセット
-    this.failedPayments = 0;
-  }
-  
-  // 次回支払日を更新
-  if (paymentData.next_payment_date) {
-    this.nextPaymentDate = new Date(paymentData.next_payment_date);
-  }
-  
-  return this;
-};
+  this.updatedAt = new Date();
+  next();
+});
+
+// インデックスを追加して検索を最適化
+subscriptionSchema.index({ userId: 1 });
+subscriptionSchema.index({ paypalSubscriptionId: 1 }, { unique: true });
+subscriptionSchema.index({ status: 1 });
+subscriptionSchema.index({ nextPaymentDate: 1 });
 
 const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
