@@ -79,7 +79,8 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  hasPremium: { type: Boolean, default: false } // プレミアムプランかどうかのフラグを追加
 });
 
 // ドメインモデル
@@ -109,6 +110,9 @@ const urlSchema = new mongoose.Schema({
   }]
 });
 
+// サブスクリプションモデルの読み込み
+const Subscription = require('./models/Subscription');
+
 // モデルのインデックス設定
 urlSchema.index({ shortCode: 1 });
 urlSchema.index({ customSlug: 1 });
@@ -117,6 +121,9 @@ domainSchema.index({ domainName: 1 });
 const User = mongoose.model('User', userSchema);
 const Domain = mongoose.model('Domain', domainSchema);
 const Url = mongoose.model('Url', urlSchema);
+
+// PayPalヘルパーの読み込み
+const paypalHelper = require('./utils/paypalHelper');
 
 // 認証チェックミドルウェア
 const isAuthenticated = (req, res, next) => {
@@ -132,12 +139,72 @@ const isAuthenticated = (req, res, next) => {
   res.redirect('/login');
 };
 
+// プレミアムユーザーチェックミドルウェア
+const isPremiumUser = async (req, res, next) => {
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+  
+  try {
+    // ユーザー情報を取得
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.redirect('/login');
+    }
+    
+    // プレミアム状態を確認
+    if (user.hasPremium) {
+      return next();
+    }
+    
+    // アクティブなサブスクリプションがあるか確認
+    const activeSubscription = await Subscription.findOne({
+      userId: req.session.userId,
+      status: 'active'
+    });
+    
+    if (activeSubscription) {
+      // ユーザーのプレミアムステータスを更新
+      user.hasPremium = true;
+      await user.save();
+      return next();
+    }
+    
+    // プレミアムユーザーでない場合はプラン選択ページへリダイレクト
+    res.redirect('/subscription/plans?error=この機能を利用するにはプレミアムプランへの登録が必要です');
+  } catch (err) {
+    console.error('プレミアムユーザーチェックエラー:', err);
+    res.redirect('/dashboard?error=ユーザー情報の確認中にエラーが発生しました');
+  }
+};
+
+// サブスクリプション情報を取得するミドルウェア
+const getSubscriptionInfo = async (req, res, next) => {
+  if (!req.session || !req.session.userId) {
+    res.locals.subscription = null;
+    return next();
+  }
+  
+  try {
+    const subscription = await Subscription.findOne({
+      userId: req.session.userId,
+      status: 'active'
+    });
+    
+    res.locals.subscription = subscription;
+    next();
+  } catch (err) {
+    console.error('サブスクリプション情報取得エラー:', err);
+    res.locals.subscription = null;
+    next();
+  }
+};
 // カスタムスラグによるリダイレクト - ルートパスで直接アクセス (他のルートよりも先に配置)
 app.get('/:slug', async (req, res, next) => {
   const slug = req.params.slug;
   
   // システムページ用のパスはスキップ
-  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls', 'status', 'error', 'urls'].includes(slug)) {
+  if (['login', 'register', 'dashboard', 'domains', 'logout', 's', 'dashboard-temp', 'test-urls', 'status', 'error', 'urls', 'subscription'].includes(slug)) {
     return next();
   }
   
@@ -267,6 +334,7 @@ app.post('/login', async (req, res) => {
     return res.render('login', { error: 'ログイン処理中にエラーが発生しました: ' + err.message });
   }
 });
+
 // 新規登録ページ
 app.get('/register', (req, res) => {
   try {
@@ -311,7 +379,8 @@ app.post('/register', async (req, res) => {
     const newUser = new User({
       username,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      hasPremium: false // デフォルトは無料ユーザー
     });
     
     console.log('ユーザーをデータベースに保存');
@@ -345,7 +414,7 @@ app.get('/logout', (req, res) => {
 });
 
 // ダッシュボード - 時間帯データを追加
-app.get('/dashboard', isAuthenticated, async (req, res) => {
+app.get('/dashboard', isAuthenticated, getSubscriptionInfo, async (req, res) => {
   try {
     console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
     const userId = req.session.userId;
@@ -415,7 +484,8 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       hourlyStats, // 時間帯別統計を追加
       error: req.query.error || null,
       success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site'  // appDomainが確実に渡されるようにする
+      appDomain: req.appDomain || 'king-rule.site',  // appDomainが確実に渡されるようにする
+      subscription: res.locals.subscription // サブスクリプション情報を渡す
     }, (err, html) => {
       if (err) {
         console.error('レンダリングエラー:', err);
@@ -433,12 +503,13 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
       hourlyStats: Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })),
       error: 'データの取得中にエラーが発生しました: ' + err.message,
       success: null,
-      appDomain: req.appDomain || 'king-rule.site'  // エラー時もappDomainを渡す
+      appDomain: req.appDomain || 'king-rule.site',  // エラー時もappDomainを渡す
+      subscription: null
     });
   }
 });
 // URL詳細ページの追加
-app.get('/urls/detail/:id', isAuthenticated, async (req, res) => {
+app.get('/urls/detail/:id', isAuthenticated, getSubscriptionInfo, async (req, res) => {
   try {
     const url = await Url.findOne({
       _id: req.params.id,
@@ -489,7 +560,8 @@ app.get('/urls/detail/:id', isAuthenticated, async (req, res) => {
       dailyChartData,
       error: req.query.error || null,
       success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site'
+      appDomain: req.appDomain || 'king-rule.site',
+      subscription: res.locals.subscription
     });
     
   } catch (err) {
@@ -517,7 +589,7 @@ app.get('/test-urls', isAuthenticated, async (req, res) => {
 });
 
 // 一時的なダッシュボードルート追加（セッション問題の回避策）
-app.get('/dashboard-temp', async (req, res) => {
+app.get('/dashboard-temp', getSubscriptionInfo, async (req, res) => {
   try {
     const userId = req.query.userId;
     if (!userId) {
@@ -566,13 +638,15 @@ app.get('/dashboard-temp', async (req, res) => {
       hourlyStats,
       error: req.query.error || null,
       success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site'
+      appDomain: req.appDomain || 'king-rule.site',
+      subscription: res.locals.subscription
     });
   } catch (err) {
     console.error('一時ダッシュボード表示エラー:', err);
     return res.redirect('/login');
   }
 });
+
 // URL短縮処理
 app.post('/shorten', isAuthenticated, async (req, res) => {
   const { originalUrl, domainId, customSlug } = req.body;
@@ -586,10 +660,31 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
   }
   
   try {
+    // ユーザーの種類を確認（プレミアムかどうか）
+    const user = await User.findById(req.session.userId);
+    const isUserPremium = user.hasPremium;
+    
+    // 無料ユーザーの場合、URLの総数を確認
+    if (!isUserPremium) {
+      const urlCount = await Url.countDocuments({ userId: req.session.userId });
+      if (urlCount >= 10) {
+        return res.redirect('/dashboard?error=無料プランでは最大10個までのURLしか作成できません。プレミアムプランにアップグレードしてください。');
+      }
+      
+      // 無料ユーザーはカスタムドメインとカスタムスラグが使えない
+      if (domainId && domainId !== 'default') {
+        return res.redirect('/dashboard?error=カスタムドメインを使用するにはプレミアムプランへのアップグレードが必要です');
+      }
+      
+      if (customSlug) {
+        return res.redirect('/dashboard?error=カスタムスラグを使用するにはプレミアムプランへのアップグレードが必要です');
+      }
+    }
+    
     let url = null;
     let shortUrl = '';
     
-    if (domainId && domainId !== 'default') {
+    if (domainId && domainId !== 'default' && isUserPremium) {
       const domain = await Domain.findOne({ 
         _id: domainId, 
         userId: req.session.userId,
@@ -657,9 +752,12 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
 });
 
 // ドメイン追加ページ
-app.get('/domains/add', isAuthenticated, (req, res) => {
+app.get('/domains/add', isAuthenticated, isPremiumUser, getSubscriptionInfo, (req, res) => {
   try {
-    res.render('add-domain', { error: null });
+    res.render('add-domain', { 
+      error: null,
+      subscription: res.locals.subscription
+    });
   } catch (err) {
     console.error('ドメイン追加ページエラー:', err);
     res.status(500).send('内部サーバーエラーが発生しました');
@@ -667,23 +765,23 @@ app.get('/domains/add', isAuthenticated, (req, res) => {
 });
 
 // ドメイン追加処理
-app.post('/domains/add', isAuthenticated, async (req, res) => {
+app.post('/domains/add', isAuthenticated, isPremiumUser, async (req, res) => {
   const { domainName } = req.body;
   
   if (!domainName) {
-    return res.render('add-domain', { error: 'ドメイン名を入力してください' });
+    return res.render('add-domain', { error: 'ドメイン名を入力してください', subscription: null });
   }
   
   const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
   if (!domainRegex.test(domainName)) {
-    return res.render('add-domain', { error: '有効なドメイン名を入力してください' });
+    return res.render('add-domain', { error: '有効なドメイン名を入力してください', subscription: null });
   }
   
   try {
     const existingDomain = await Domain.findOne({ domainName });
     
     if (existingDomain) {
-      return res.render('add-domain', { error: 'そのドメインは既に登録されています' });
+      return res.render('add-domain', { error: 'そのドメインは既に登録されています', subscription: null });
     }
     
     const verificationCode = 'verify-' + shortid.generate();
@@ -699,12 +797,12 @@ app.post('/domains/add', isAuthenticated, async (req, res) => {
     res.redirect(`/domains/verify/${newDomain._id}`);
   } catch (err) {
     console.error(err);
-    res.render('add-domain', { error: 'ドメイン追加中にエラーが発生しました: ' + err.message });
+    res.render('add-domain', { error: 'ドメイン追加中にエラーが発生しました: ' + err.message, subscription: null });
   }
 });
 
 // ドメイン検証ページ
-app.get('/domains/verify/:id', isAuthenticated, async (req, res) => {
+app.get('/domains/verify/:id', isAuthenticated, isPremiumUser, getSubscriptionInfo, async (req, res) => {
   try {
     const domain = await Domain.findOne({ 
       _id: req.params.id, 
@@ -715,7 +813,10 @@ app.get('/domains/verify/:id', isAuthenticated, async (req, res) => {
       return res.redirect('/dashboard?error=ドメインが見つかりません');
     }
     
-    res.render('verify-domain', { domain });
+    res.render('verify-domain', { 
+      domain,
+      subscription: res.locals.subscription
+    });
   } catch (err) {
     console.error(err);
     res.redirect('/dashboard?error=ドメイン検証ページの読み込み中にエラーが発生しました: ' + err.message);
@@ -723,7 +824,7 @@ app.get('/domains/verify/:id', isAuthenticated, async (req, res) => {
 });
 
 // ドメイン検証処理
-app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
+app.post('/domains/verify/:id', isAuthenticated, isPremiumUser, async (req, res) => {
   try {
     const domain = await Domain.findOne({ 
       _id: req.params.id, 
@@ -744,6 +845,7 @@ app.post('/domains/verify/:id', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?error=ドメイン検証中にエラーが発生しました: ' + err.message);
   }
 });
+
 // ドメイン削除処理
 app.get('/domains/delete/:id', isAuthenticated, async (req, res) => {
   try {
@@ -820,6 +922,230 @@ app.get('/error', (req, res) => {
     error: {}
   });
 });
+
+// サブスクリプション関連のルート
+// プレミアムプラン選択ページ
+app.get('/subscription/plans', isAuthenticated, getSubscriptionInfo, async (req, res) => {
+  try {
+    res.render('subscription/plans', {
+      error: req.query.error || null,
+      success: req.query.success || null,
+      subscription: res.locals.subscription
+    });
+  } catch (err) {
+    console.error('プラン選択ページエラー:', err);
+    res.redirect('/dashboard?error=プラン情報の読み込み中にエラーが発生しました');
+  }
+});
+
+// サブスクリプション状態の管理・表示ページ
+app.get('/subscription/manage', isAuthenticated, getSubscriptionInfo, async (req, res) => {
+  try {
+    // アクティブなサブスクリプションを確認
+    if (!res.locals.subscription) {
+      return res.redirect('/subscription/plans?error=現在、有効なサブスクリプションがありません');
+    }
+    
+    const subscription = res.locals.subscription;
+    
+    // PayPalから最新のサブスクリプション情報を取得
+    const paypalSubscription = await paypalHelper.getSubscriptionDetails(subscription.paypalSubscriptionId);
+    
+    res.render('subscription/manage', {
+      subscription,
+      paypalInfo: paypalSubscription.success ? paypalSubscription.subscription : null,
+      error: req.query.error || null,
+      success: req.query.success || null
+    });
+  } catch (err) {
+    console.error('サブスクリプション管理ページエラー:', err);
+    res.redirect('/dashboard?error=サブスクリプション情報の読み込み中にエラーが発生しました');
+  }
+});
+
+// PayPalサブスクリプション作成完了コールバック
+app.get('/subscription/success', isAuthenticated, async (req, res) => {
+  const { subscription_id } = req.query;
+  
+  if (!subscription_id) {
+    return res.redirect('/subscription/plans?error=サブスクリプションIDが見つかりません');
+  }
+  
+  try {
+    // PayPalからサブスクリプション詳細を取得
+    const paypalSubscription = await paypalHelper.getSubscriptionDetails(subscription_id);
+    
+    if (!paypalSubscription.success) {
+      return res.redirect('/subscription/plans?error=サブスクリプション情報の取得に失敗しました');
+    }
+    
+    // すでに同じサブスクリプションが登録されていないか確認
+    const existingSubscription = await Subscription.findOne({
+      paypalSubscriptionId: subscription_id
+    });
+    
+    if (existingSubscription) {
+      return res.redirect('/subscription/manage?success=サブスクリプションは既に登録されています');
+    }
+    
+    // サブスクリプション情報をデータベースに保存
+    const subscription = new Subscription({
+      userId: req.session.userId,
+      paypalSubscriptionId: subscription_id,
+      status: 'active',
+      planType: 'premium',
+      startDate: new Date(paypalSubscription.subscription.start_time),
+      nextPaymentDate: new Date(paypalSubscription.subscription.billing_info.next_billing_time)
+    });
+    
+    await subscription.save();
+    
+    // ユーザーのプレミアムステータスを更新
+    const user = await User.findById(req.session.userId);
+    user.hasPremium = true;
+    await user.save();
+    
+    res.redirect('/dashboard?success=プレミアムプランへのサブスクリプションが完了しました');
+  } catch (err) {
+    console.error('サブスクリプション登録エラー:', err);
+    res.redirect('/subscription/plans?error=サブスクリプションの登録中にエラーが発生しました');
+  }
+});
+
+// サブスクリプションのキャンセル処理
+app.post('/subscription/cancel', isAuthenticated, getSubscriptionInfo, async (req, res) => {
+  try {
+    if (!res.locals.subscription) {
+      return res.redirect('/subscription/plans?error=有効なサブスクリプションがありません');
+    }
+    
+    const subscription = res.locals.subscription;
+    
+    // PayPal上でサブスクリプションをキャンセル
+    const cancelResult = await paypalHelper.cancelSubscription(subscription.paypalSubscriptionId, 'ユーザーによるキャンセル');
+    
+    if (!cancelResult.success) {
+      return res.redirect('/subscription/manage?error=サブスクリプションのキャンセルに失敗しました: ' + cancelResult.error);
+    }
+    
+    // データベース上でサブスクリプションのステータスを更新
+    subscription.status = 'cancelled';
+    subscription.endDate = new Date();
+    await subscription.save();
+    
+    // ユーザーのプレミアムステータスを更新（現在の支払い期間終了後に無効になる）
+    // 支払い期間中はプレミアム特典を維持するため、即座にhasPremiumをfalseにはしない
+    
+    res.redirect('/dashboard?success=サブスクリプションがキャンセルされました。現在の支払い期間終了まではプレミアム機能を利用できます。');
+  } catch (err) {
+    console.error('サブスクリプションキャンセルエラー:', err);
+    res.redirect('/subscription/manage?error=サブスクリプションのキャンセル中にエラーが発生しました');
+  }
+});
+
+// PayPal Webhook処理（本番環境ではこれを設定して自動的に支払い状態を更新する）
+app.post('/webhook/paypal', express.json(), async (req, res) => {
+  // Webhook検証と処理は本番実装時に追加
+  try {
+    const event = req.body;
+    
+    console.log('PayPal Webhook受信:', event.event_type);
+    
+    // イベントタイプによる処理分岐
+    switch (event.event_type) {
+      case 'BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED':
+        // 支払い成功時の処理
+        await handlePaymentSuccess(event.resource);
+        break;
+      case 'BILLING.SUBSCRIPTION.EXPIRED':
+        // サブスクリプション期限切れ時の処理
+        await handleSubscriptionExpired(event.resource);
+        break;
+      case 'BILLING.SUBSCRIPTION.CANCELLED':
+        // サブスクリプションキャンセル時の処理
+        await handleSubscriptionCancelled(event.resource);
+        break;
+      default:
+        console.log('未処理のイベントタイプ:', event.event_type);
+    }
+    
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Webhook処理エラー:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// PayPal Webhook用の処理関数
+async function handlePaymentSuccess(resource) {
+  try {
+    const subscriptionId = resource.billing_agreement_id;
+    
+    // サブスクリプションを検索して更新
+    const subscription = await Subscription.findOne({ paypalSubscriptionId: subscriptionId });
+    
+    if (subscription) {
+      subscription.lastPaymentDate = new Date();
+      subscription.nextPaymentDate = new Date(resource.next_billing_time);
+      await subscription.save();
+      
+      // ユーザーのプレミアムステータスを確認・更新
+      const user = await User.findById(subscription.userId);
+      if (!user.hasPremium) {
+        user.hasPremium = true;
+        await user.save();
+      }
+    }
+  } catch (err) {
+    console.error('支払い成功処理エラー:', err);
+  }
+}
+
+async function handleSubscriptionExpired(resource) {
+  try {
+    const subscriptionId = resource.id;
+    
+    // サブスクリプションを検索して更新
+    const subscription = await Subscription.findOne({ paypalSubscriptionId: subscriptionId });
+    
+    if (subscription) {
+      subscription.status = 'expired';
+      subscription.endDate = new Date();
+      await subscription.save();
+      
+      // ユーザーのプレミアムステータスを更新
+      const user = await User.findById(subscription.userId);
+      user.hasPremium = false;
+      await user.save();
+    }
+  } catch (err) {
+    console.error('サブスクリプション期限切れ処理エラー:', err);
+  }
+}
+
+async function handleSubscriptionCancelled(resource) {
+  try {
+    const subscriptionId = resource.id;
+    
+    // サブスクリプションを検索して更新
+    const subscription = await Subscription.findOne({ paypalSubscriptionId: subscriptionId });
+    
+    if (subscription) {
+      subscription.status = 'cancelled';
+      subscription.endDate = new Date();
+      await subscription.save();
+      
+      // サブスクリプションが既にキャンセルされている場合はユーザーのプレミアムステータスを更新
+      if (new Date() >= new Date(resource.billing_info.next_billing_time)) {
+        const user = await User.findById(subscription.userId);
+        user.hasPremium = false;
+        await user.save();
+      }
+    }
+  } catch (err) {
+    console.error('サブスクリプションキャンセル処理エラー:', err);
+  }
+}
 
 // エラーハンドリングミドルウェア
 app.use((err, req, res, next) => {
