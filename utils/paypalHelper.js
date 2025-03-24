@@ -1,78 +1,135 @@
 const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
 
 /**
- * PayPal設定とAPI呼び出しのためのヘルパーモジュール
+ * PayPal環境設定とクライアント設定を行うモジュール
  */
 
-// PayPalの環境設定
+// 環境設定
 function environment() {
-  const clientId = process.env.PAYPAL_CLIENT_ID || 'AR-v6denWr1Ip-CY0KVr_MWh6JBEFoXp_ZQhhEGRNjpUDgjedN4kcOzPb0i1tLfrM3MYcVqExkNyyoMc';
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'YOUR_PAYPAL_CLIENT_SECRET';
+  const clientId = process.env.PAYPAL_CLIENT_ID || 'YOUR_CLIENT_ID';
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
 
-  // 本番環境かテスト環境かを判定
-  if (process.env.NODE_ENV === 'production') {
+  // 本番環境か開発環境かを判断
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  if (isProd) {
     return new checkoutNodeJssdk.core.LiveEnvironment(clientId, clientSecret);
+  } else {
+    return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);
   }
-  return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);
 }
 
-// PayPalクライアントを設定
+// PayPalクライアントの取得
 function client() {
   return new checkoutNodeJssdk.core.PayPalHttpClient(environment());
 }
 
-// サブスクリプション処理
-async function processSubscription(subscriptionId) {
-  try {
-    // subscriptionIdを使用して必要な処理を行う
-    // 実際のAPIコールはPayPalのサブスクリプションAPIドキュメントに従う
-    return {
-      success: true,
-      subscriptionDetails: {
-        id: subscriptionId,
-        status: 'ACTIVE'
-      }
-    };
-  } catch (err) {
-    console.error('サブスクリプション処理エラー:', err);
-    throw new Error('サブスクリプション処理中にエラーが発生しました');
-  }
-}
-
-// サブスクリプション詳細の取得
+// サブスクリプション情報の取得
 async function getSubscriptionDetails(subscriptionId) {
   try {
-    // サブスクリプション詳細を取得するAPIコール
-    // 実際の実装ではPayPalのAPIを呼び出す
+    const request = new checkoutNodeJssdk.subscriptions.SubscriptionsGetRequest(subscriptionId);
+    const response = await client().execute(request);
     return {
-      id: subscriptionId,
-      status: 'ACTIVE',
-      start_time: new Date().toISOString(),
-      next_billing_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      success: true,
+      subscription: response.result
     };
-  } catch (err) {
-    console.error('サブスクリプション詳細取得エラー:', err);
-    throw new Error('サブスクリプション情報の取得中にエラーが発生しました');
+  } catch (error) {
+    console.error('PayPal サブスクリプション情報取得エラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
 // サブスクリプションのキャンセル
-async function cancelSubscription(subscriptionId) {
+async function cancelSubscription(subscriptionId, reason = 'ユーザーによるキャンセル') {
   try {
-    // サブスクリプションをキャンセルするAPIコール
-    // 実際の実装ではPayPalのAPIを呼び出す
+    const request = new checkoutNodeJssdk.subscriptions.SubscriptionsCancelRequest(subscriptionId);
+    request.requestBody({
+      reason: reason
+    });
+    const response = await client().execute(request);
     return {
       success: true
     };
-  } catch (err) {
-    console.error('サブスクリプションキャンセルエラー:', err);
-    throw new Error('サブスクリプションのキャンセル中にエラーが発生しました');
+  } catch (error) {
+    console.error('PayPal サブスクリプションキャンセルエラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// サブスクリプションの一時停止
+async function suspendSubscription(subscriptionId, reason = '一時停止') {
+  try {
+    const request = new checkoutNodeJssdk.subscriptions.SubscriptionsSuspendRequest(subscriptionId);
+    request.requestBody({
+      reason: reason
+    });
+    const response = await client().execute(request);
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('PayPal サブスクリプション一時停止エラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// サブスクリプションの再開
+async function activateSubscription(subscriptionId, reason = '再開') {
+  try {
+    const request = new checkoutNodeJssdk.subscriptions.SubscriptionsActivateRequest(subscriptionId);
+    request.requestBody({
+      reason: reason
+    });
+    const response = await client().execute(request);
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('PayPal サブスクリプション再開エラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// サブスクリプション取引履歴の取得
+async function getSubscriptionTransactions(subscriptionId, startDate, endDate) {
+  try {
+    const request = new checkoutNodeJssdk.subscriptions.SubscriptionsTransactionsRequest(subscriptionId);
+    request.queryParams = {
+      'start_time': startDate.toISOString(),
+      'end_time': endDate.toISOString()
+    };
+    const response = await client().execute(request);
+    return {
+      success: true,
+      transactions: response.result.transactions
+    };
+  } catch (error) {
+    console.error('PayPal サブスクリプション取引履歴取得エラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
 module.exports = {
   client,
-  processSubscription,
+  environment,
   getSubscriptionDetails,
-  cancelSubscription
+  cancelSubscription,
+  suspendSubscription,
+  activateSubscription,
+  getSubscriptionTransactions
 };

@@ -1,7 +1,7 @@
 {
   "name": "royal-link",
   "version": "1.0.0",
-  "description": "独自ドメイン対応の短縮URL",
+  "description": "独自ドメイン対応の短縮URL - サブスクリプションベース",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -12,6 +12,7 @@
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.0",
     "connect-mongo": "^4.6.0",
+    "dotenv": "^16.0.0",
     "ejs": "^3.1.8",
     "express": "^4.18.2",
     "express-session": "^1.17.3",

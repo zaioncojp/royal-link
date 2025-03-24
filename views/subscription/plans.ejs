@@ -1,32 +1,696 @@
 <!DOCTYPE html>
 <html lang="ja">
-<%- include('../partials/header') %>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プレミアムプラン - ROYAL LINK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --primary-light: #818cf8;
+      --primary-dark: #4f46e5;
+      --accent-color: #ec4899;
+      --accent-hover: #db2777;
+      --dark-color: #111827;
+      --light-color: #f9fafb;
+      --text-color: #f3f4f6;
+      --text-muted: #9ca3af;
+      --card-bg: rgba(31, 41, 55, 0.7);
+      --card-border: rgba(255, 255, 255, 0.05);
+      --glass-bg: rgba(31, 41, 55, 0.6);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --hover-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(to right, #111827, #1f2937, #374151);
+      color: var(--text-color);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Canvas animations */
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.2;
+    }
+    
+    /* Container styles */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 2rem 0;
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      transition: var(--hover-transition);
+      border-right: 1px solid var(--card-border);
+    }
+    
+    .logo {
+      padding: 0 1.5rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 2rem;
+    }
+    
+    .logo h2 {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-size: 1.8rem;
+      text-transform: uppercase;
+    }
+    
+    .nav-menu ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .nav-menu li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .nav-menu li a {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      color: var(--text-color);
+      text-decoration: none;
+      transition: var(--hover-transition);
+      border-left: 3px solid transparent;
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-menu li a::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: var(--hover-transition);
+    }
+    
+    .nav-menu li a:hover::before {
+      left: 100%;
+    }
+    
+    .nav-menu li a i {
+      margin-right: 1rem;
+      font-size: 1.2rem;
+      position: relative;
+      z-index: 1;
+      transition: var(--hover-transition);
+      color: var(--text-muted);
+    }
+    
+    .nav-menu li a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-left-color: var(--accent-color);
+    }
+    
+    .nav-menu li a:hover i {
+      color: var(--accent-color);
+      transform: translateX(5px);
+    }
+    
+    .nav-menu li.active a {
+      background: rgba(255, 255, 255, 0.05);
+      border-left-color: var(--primary-light);
+    }
+    
+    .nav-menu li.active a i {
+      color: var(--primary-light);
+    }
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      margin-left: 260px;
+      max-width: 1200px;
+      margin: 0 auto 0 260px;
+    }
+    
+    .top-bar {
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    
+    .top-bar h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0;
+      position: relative;
+    }
+    
+    .top-bar h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      border-radius: 2px;
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      transition: var(--hover-transition);
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(17, 24, 39, 0.7);
+    }
+    
+    .card-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-header h2 i {
+      margin-right: 10px;
+      color: var(--accent-color);
+      font-size: 1.2rem;
+    }
+    
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    /* 料金プラン関連のスタイル */
+    .plans-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 1rem;
+    }
+    
+    .plan-card {
+      background: rgba(31, 41, 55, 0.4);
+      border-radius: 1rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+    
+    .plan-card.popular {
+      border: 2px solid var(--accent-color);
+      transform: scale(1.03);
+    }
+    
+    .plan-card.popular::after {
+      content: 'おすすめ';
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--accent-color);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .plan-header {
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+    
+    .plan-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    
+    .plan-price {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    
+    .plan-price span {
+      font-size: 1rem;
+      font-weight: 400;
+      margin-right: 0.25rem;
+    }
+    
+    .plan-billing-cycle {
+      font-size: 0.875rem;
+      opacity: 0.7;
+      margin-bottom: 1rem;
+    }
+    
+    .plan-features {
+      padding: 1.5rem;
+      flex-grow: 1;
+    }
+    
+    .plan-features ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .plan-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .plan-features li i {
+      color: var(--success);
+      margin-right: 0.75rem;
+      font-size: 1rem;
+    }
+    
+    .plan-features li.not-included i {
+      color: var(--danger);
+    }
+    
+    .plan-features li.not-included {
+      opacity: 0.7;
+      text-decoration: line-through;
+    }
+    
+    .plan-cta {
+      padding: 1.5rem;
+      border-top: 1px solid var(--card-border);
+      text-align: center;
+    }
+    
+    .paypal-container {
+      margin-top: 1rem;
+    }
+    /* Alert styles */
+    .alert {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid;
+      display: flex;
+      align-items: flex-start;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .alert i {
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
+      margin-top: 0.125rem;
+    }
+    
+    .alert-info {
+      border-color: var(--primary-color);
+    }
+    
+    .alert-info i {
+      color: var(--primary-light);
+    }
+    
+    .alert-success {
+      border-color: var(--success);
+    }
+    
+    .alert-success i {
+      color: var(--success);
+    }
+    
+    .alert-error {
+      border-color: var(--danger);
+    }
+    
+    .alert-error i {
+      color: var(--danger);
+    }
+
+    /* ボタン */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--hover-transition);
+      text-decoration: none;
+      border: none;
+      outline: none;
+      font-size: 0.875rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: var(--hover-transition);
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary:hover::after {
+      left: 100%;
+    }
+    
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+      color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-accent::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: var(--hover-transition);
+    }
+    
+    .btn-accent:hover {
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-color) 100%);
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .btn-accent:hover::after {
+      left: 100%;
+    }
+    
+    .btn-accent:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn i {
+      margin-right: 0.5rem;
+    }
+    
+    .btn-block {
+      display: flex;
+      width: 100%;
+    }
+    
+    /* サブスクリプションステータス */
+    .subscription-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .subscription-status.active {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .subscription-status.expired {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    /* モバイルレスポンシブ対応 */
+    @media (max-width: 1024px) {
+      .plans-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .plan-card.popular {
+        transform: scale(1);
+        margin: 2rem 0;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 80px;
+        padding: 1.5rem 0;
+      }
+      
+      .logo h2 {
+        font-size: 1rem;
+      }
+      
+      .nav-menu li a {
+        padding: 1rem 0;
+        justify-content: center;
+      }
+      
+      .nav-menu li a span {
+        display: none;
+      }
+      
+      .nav-menu li a i {
+        margin-right: 0;
+        font-size: 1.5rem;
+      }
+      
+      .main-content {
+        margin-left: 80px;
+        padding: 1.5rem;
+      }
+      
+      .top-bar h1 {
+        font-size: 2rem;
+      }
+    }
+    @media (max-width: 640px) {
+      .top-bar h1 {
+        font-size: 1.75rem;
+      }
+      
+      .main-content {
+        padding: 1rem;
+      }
+      
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .card-header h2 {
+        margin-bottom: 1rem;
+      }
+    }
+    
+    /* アニメーション */
+    @keyframes pulse {
+      0% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+      100% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    /* フローティングパーティクル */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    
+    /* PayPalボタンスタイル調整 */
+    #paypal-button-container {
+      margin-top: 1.5rem;
+      width: 100%;
+    }
+    
+    /* Special styles for benefits */
+    .benefit-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    
+    .benefit-item {
+      background: rgba(31, 41, 55, 0.3);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      transition: all 0.3s ease;
+      border: 1px solid var(--card-border);
+    }
+    
+    .benefit-item:hover {
+      transform: translateY(-5px);
+      background: rgba(31, 41, 55, 0.5);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .benefit-icon {
+      font-size: 2rem;
+      color: var(--primary-light);
+      margin-right: 1rem;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .benefit-content h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .benefit-content p {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+  </style>
+</head>
 <body>
-  <!-- Background effects -->
-  <div class="bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
+  <!-- Animated background -->
+  <div class="particles" id="particles"></div>
+  <div id="canvas-container"></div>
 
   <div class="dashboard-container">
-    <!-- Sidebar -->
-    <%- include('../partials/sidebar') %>
+    <!-- サイドバー -->
+    <div class="sidebar">
+      <div class="logo">
+        <h2>ROYAL LINK</h2>
+      </div>
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="/dashboard"><i class="fas fa-chart-pie"></i> <span>ダッシュボード</span></a></li>
+          <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
+          <li class="active"><a href="/subscription/plans"><i class="fas fa-crown"></i> <span>プレミアムプラン</span></a></li>
+          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
+        </ul>
+      </nav>
+    </div>
 
-    <!-- Main content -->
+    <!-- メインコンテンツ -->
     <div class="main-content">
       <header class="top-bar">
         <h1>プレミアムプラン</h1>
-        <a href="/dashboard" class="btn-small">
-          <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
-        </a>
       </header>
-
-      <% if (message) { %>
-        <div class="alert alert-info">
-          <i class="fas fa-info-circle"></i> <%= message %>
-        </div>
-      <% } %>
 
       <% if (error) { %>
         <div class="alert alert-error">
@@ -34,109 +698,145 @@
         </div>
       <% } %>
 
-      <!-- Plans -->
-      <section class="plans-section">
-        <div class="plan-container">
-          <div class="plan free">
-            <div class="plan-header">
-              <h2>無料プラン</h2>
-              <div class="plan-price">¥0<span>/月</span></div>
-            </div>
-            <div class="plan-body">
-              <ul class="plan-features">
-                <li><i class="fas fa-times"></i> URL短縮機能</li>
-                <li><i class="fas fa-times"></i> 独自ドメイン機能</li>
-                <li><i class="fas fa-times"></i> アクセス統計</li>
-                <li><i class="fas fa-times"></i> カスタムスラグ</li>
-                <li><i class="fas fa-check"></i> アカウント管理</li>
-              </ul>
-              <p class="plan-description">
-                無料プランでは、アカウント管理のみ可能です。URL短縮機能を利用するには、プレミアムプランへアップグレードしてください。
-              </p>
-              <div class="plan-action">
-                <a href="/dashboard" class="btn-secondary">
-                  現在のプラン
-                </a>
-              </div>
-            </div>
-          </div>
+      <% if (success) { %>
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle"></i> <%= success %>
+        </div>
+      <% } %>
 
-          <div class="plan premium">
-            <div class="plan-badge">おすすめ</div>
-            <div class="plan-header">
-              <h2>プレミアムプラン</h2>
-              <div class="plan-price">¥980<span>/月</span></div>
-            </div>
-            <div class="plan-body">
-              <ul class="plan-features">
-                <li><i class="fas fa-check"></i> URL短縮機能</li>
-                <li><i class="fas fa-check"></i> 独自ドメイン機能</li>
-                <li><i class="fas fa-check"></i> 詳細なアクセス統計</li>
-                <li><i class="fas fa-check"></i> カスタムスラグ</li>
-                <li><i class="fas fa-check"></i> アカウント管理</li>
-              </ul>
-              <p class="plan-description">
-                プレミアムプランでは、すべての機能が利用可能です。短縮URLの作成や、独自ドメインの使用、詳細なアクセス統計を確認できます。
-              </p>
-              <div class="plan-action">
-                <div id="paypal-button-container-P-5GM64833J5530234JM7QPGWI"></div>
+      <% if (subscription && subscription.status === 'active') { %>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i> 
+          現在、プレミアムプランに加入中です。サブスクリプションの詳細と管理は
+          <a href="/subscription/manage">管理ページ</a>から行えます。
+        </div>
+      <% } %>
+
+      <section class="plans-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-crown"></i> プラン選択</h2>
+          </div>
+          <div class="card-body">
+            <div class="plans-container">
+              <!-- 無料プラン -->
+              <div class="plan-card">
+                <div class="plan-header">
+                  <div class="plan-name">無料プラン</div>
+                  <div class="plan-price">¥0</div>
+                  <div class="plan-billing-cycle">完全無料</div>
+                </div>
+                <div class="plan-features">
+                  <ul>
+                    <li class="not-included"><i class="fas fa-times"></i> URL短縮機能</li>
+                    <li class="not-included"><i class="fas fa-times"></i> クリック数トラッキング</li>
+                    <li class="not-included"><i class="fas fa-times"></i> カスタムスラグ</li>
+                    <li class="not-included"><i class="fas fa-times"></i> 独自ドメイン利用</li>
+                    <li class="not-included"><i class="fas fa-times"></i> 詳細アクセス解析</li>
+                  </ul>
+                </div>
+                <div class="plan-cta">
+                  <span class="text-muted">URL短縮機能を利用するにはプレミアムプランへの登録が必要です</span>
+                </div>
+              </div>
+              
+              <!-- プレミアムプラン -->
+              <div class="plan-card popular">
+                <div class="plan-header">
+                  <div class="plan-name">プレミアムプラン</div>
+                  <div class="plan-price"><span>¥</span>980</div>
+                  <div class="plan-billing-cycle">月額</div>
+                </div>
+                <div class="plan-features">
+                  <ul>
+                    <li><i class="fas fa-check"></i> <strong>無制限</strong>のURL短縮</li>
+                    <li><i class="fas fa-check"></i> リアルタイムのクリック数トラッキング</li>
+                    <li><i class="fas fa-check"></i> カスタムスラグ設定</li>
+                    <li><i class="fas fa-check"></i> 独自ドメイン利用</li>
+                    <li><i class="fas fa-check"></i> 高度なアクセス解析</li>
+                    <li><i class="fas fa-check"></i> 優先サポート</li>
+                  </ul>
+                </div>
+                <div class="plan-cta">
+                  <% if (subscription && subscription.status === 'active') { %>
+                    <a href="/subscription/manage" class="btn btn-primary">
+                      <i class="fas fa-cog"></i> サブスクリプション管理
+                    </a>
+                  <% } else { %>
+                    <div id="paypal-button-container-P-5GM64833J5530234JM7QPGWI"></div>
+                    <script src="https://www.paypal.com/sdk/js?client-id=AR-v6denWr1Ip-CY0KVr_MWh6JBEFoXp_ZQhhEGRNjpUDgjedN4kcOzPb0i1tLfrM3MYcVqExkNyyoMc&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
+                    <script>
+                      paypal.Buttons({
+                          style: {
+                              shape: 'rect',
+                              color: 'gold',
+                              layout: 'vertical',
+                              label: 'subscribe'
+                          },
+                          createSubscription: function(data, actions) {
+                            return actions.subscription.create({
+                              /* Creates the subscription */
+                              plan_id: 'P-5GM64833J5530234JM7QPGWI'
+                            });
+                          },
+                          onApprove: function(data, actions) {
+                            // サブスクリプション成功時にリダイレクト
+                            window.location.href = '/subscription/success?subscription_id=' + data.subscriptionID;
+                          }
+                      }).render('#paypal-button-container-P-5GM64833J5530234JM7QPGWI'); // Renders the PayPal button
+                    </script>
+                  <% } %>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- FAQ -->
-      <section class="faq-section">
+      <!-- プレミアムプランの特典説明 -->
+      <section class="premium-benefits">
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-question-circle"></i> よくある質問</h2>
+            <h2><i class="fas fa-star"></i> プレミアムプランの特典</h2>
           </div>
           <div class="card-body">
-            <div class="faq-container">
-              <div class="faq-item">
-                <div class="faq-question">
-                  <h3>支払い方法はどのようになっていますか？</h3>
-                  <i class="fas fa-chevron-down"></i>
+            <div class="benefit-items">
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="fas fa-infinity"></i>
                 </div>
-                <div class="faq-answer">
-                  <p>PayPalを使用して月額980円をお支払いいただきます。クレジットカードまたはPayPalアカウントでのお支払いが可能です。</p>
-                </div>
-              </div>
-
-              <div class="faq-item">
-                <div class="faq-question">
-                  <h3>いつでもキャンセルできますか？</h3>
-                  <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                  <p>はい、いつでもキャンセル可能です。キャンセル後も、次回の更新日まではサービスをご利用いただけます。</p>
+                <div class="benefit-content">
+                  <h3>無制限のURL短縮</h3>
+                  <p>無制限に短縮URLを作成できます。ビジネスやマーケティングキャンペーンに最適です。</p>
                 </div>
               </div>
-
-              <div class="faq-item">
-                <div class="faq-question">
-                  <h3>プレミアムプランでは何ができますか？</h3>
-                  <i class="fas fa-chevron-down"></i>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="fas fa-pencil-alt"></i>
                 </div>
-                <div class="faq-answer">
-                  <p>プレミアムプランでは以下の機能が利用できます：</p>
-                  <ul>
-                    <li>無制限のURL短縮</li>
-                    <li>独自ドメインの使用</li>
-                    <li>詳細なアクセス統計（時間帯別、日別）</li>
-                    <li>カスタムスラグ（例：yourdomain.com/your-custom-name）</li>
-                  </ul>
+                <div class="benefit-content">
+                  <h3>カスタムスラグ</h3>
+                  <p>覚えやすく、ブランドに合った短縮URLを作成できます。例: king-rule.site/your-brand</p>
                 </div>
               </div>
-
-              <div class="faq-item">
-                <div class="faq-question">
-                  <h3>返金ポリシーはありますか？</h3>
-                  <i class="fas fa-chevron-down"></i>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="fas fa-globe"></i>
                 </div>
-                <div class="faq-answer">
-                  <p>お支払い後14日以内であれば、全額返金いたします。返金をご希望の場合は、サポートまでご連絡ください。</p>
+                <div class="benefit-content">
+                  <h3>独自ドメイン対応</h3>
+                  <p>あなたのドメインで短縮URLを作成できます。ブランド認知度とクリック率を向上させましょう。</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="benefit-content">
+                  <h3>高度なアクセス解析</h3>
+                  <p>詳細なアクセスデータを分析して、マーケティング戦略を最適化できます。</p>
                 </div>
               </div>
             </div>
@@ -146,317 +846,98 @@
     </div>
   </div>
 
-  <!-- PayPal SDK -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AR-v6denWr1Ip-CY0KVr_MWh6JBEFoXp_ZQhhEGRNjpUDgjedN4kcOzPb0i1tLfrM3MYcVqExkNyyoMc&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
-  
   <script>
-    // FAQの開閉
+    // パーティクルアニメーション
     document.addEventListener('DOMContentLoaded', function() {
-      const faqItems = document.querySelectorAll('.faq-item');
+      // パーティクル生成
+      const particlesContainer = document.getElementById('particles');
+      const numParticles = 30;
+      const colors = ['#6366f1', '#818cf8', '#ec4899', '#8b5cf6'];
       
-      faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        const answer = item.querySelector('.faq-answer');
+      for (let i = 0; i < numParticles; i++) {
+        const size = Math.random() * 8 + 2;
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.filter = `blur(${Math.random() * 2}px)`;
+        particle.style.opacity = Math.random() * 0.3 + 0.1;
         
-        question.addEventListener('click', function() {
-          const isOpen = item.classList.contains('active');
-          
-          // 全てのFAQを閉じる
-          faqItems.forEach(faq => {
-            faq.classList.remove('active');
-            faq.querySelector('.faq-answer').style.maxHeight = null;
-          });
-          
-          // クリックされたFAQが閉じていたら開く
-          if (!isOpen) {
-            item.classList.add('active');
-            answer.style.maxHeight = answer.scrollHeight + 'px';
-          }
-        });
-      });
+        // アニメーション
+        const duration = Math.random() * 30 + 20;
+        const x = Math.random() * 100 - 50;
+        const y = Math.random() * 100 - 50;
+        
+        particle.style.animation = `moveParticle ${duration}s linear infinite`;
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        particlesContainer.appendChild(particle);
+      }
       
-      // PayPalボタンの設定
-      paypal.Buttons({
-        style: {
-          shape: 'rect',
-          color: 'gold',
-          layout: 'vertical',
-          label: 'subscribe'
-        },
-        createSubscription: function(data, actions) {
-          return actions.subscription.create({
-            /* Creates the subscription */
-            plan_id: 'P-5GM64833J5530234JM7QPGWI'
-          });
-        },
-        onApprove: function(data, actions) {
-          // サブスクリプションIDを取得して処理
-          const subscriptionId = data.subscriptionID;
+      // Canvas アニメーション
+      const container = document.getElementById('canvas-container');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      container.appendChild(canvas);
+      
+      // キャンバスサイズ設定
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // 波アニメーション設定
+      const waves = [
+        { y: canvas.height * 0.3, length: 200, amplitude: 20, speed: 0.03, color: 'rgba(99, 102, 241, 0.03)' },
+        { y: canvas.height * 0.5, length: 150, amplitude: 15, speed: 0.04, color: 'rgba(236, 72, 153, 0.03)' },
+        { y: canvas.height * 0.7, length: 100, amplitude: 25, speed: 0.02, color: 'rgba(139, 92, 246, 0.03)' }
+      ];
+      
+      let time = 0;
+      
+      // アニメーションループ
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        waves.forEach(wave => {
+          ctx.beginPath();
+          ctx.moveTo(0, wave.y);
           
-          // サーバーにサブスクリプション情報を送信
-          fetch('/subscription/activate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ subscriptionId: subscriptionId })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // 成功時はダッシュボードへリダイレクト
-              window.location.href = '/dashboard?success=サブスクリプションが正常に開始されました！';
-            } else {
-              // エラー時はアラート表示
-              alert('サブスクリプション処理中にエラーが発生しました: ' + data.error);
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('サブスクリプション処理中にエラーが発生しました。');
-          });
-        }
-      }).render('#paypal-button-container-P-5GM64833J5530234JM7QPGWI'); // Renders the PayPal button
+          for (let x = 0; x < canvas.width; x++) {
+            const y = wave.y + Math.sin(x / wave.length + time * wave.speed) * wave.amplitude;
+            ctx.lineTo(x, y);
+          }
+          
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.lineTo(0, canvas.height);
+          ctx.closePath();
+          
+          ctx.fillStyle = wave.color;
+          ctx.fill();
+        });
+        
+        time++;
+        requestAnimationFrame(animate);
+      }
+      
+      animate();
     });
   </script>
-
+  
   <style>
-    /* プラン選択ページ専用スタイル */
-    .alert-info {
-      background: rgba(79, 172, 254, 0.2);
-      border-left: 4px solid #4facfe;
-    }
-
-    .plan-container {
-      display: flex;
-      gap: 2rem;
-      justify-content: center;
-      margin: 2rem 0;
-    }
-
-    .plan {
-      flex: 1;
-      max-width: 400px;
-      background: rgba(26, 32, 44, 0.6);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .plan:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 15px 40px rgba(31, 38, 135, 0.4);
-    }
-
-    .plan-badge {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 0 12px 0 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      z-index: 1;
-    }
-
-    .plan-header {
-      padding: 2rem;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .plan-header h2 {
-      margin-bottom: 1rem;
-      font-size: 1.5rem;
-      color: var(--light-color);
-    }
-
-    .plan-price {
-      font-size: 3rem;
-      font-weight: 700;
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .plan-price span {
-      font-size: 1rem;
-      opacity: 0.7;
-    }
-
-    .premium .plan-price {
-      background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .plan-body {
-      padding: 2rem;
-    }
-
-    .plan-features {
-      list-style: none;
-      margin-bottom: 2rem;
-    }
-
-    .plan-features li {
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-    }
-
-    .plan-features li i {
-      margin-right: 1rem;
-      width: 18px;
-      text-align: center;
-    }
-
-    .plan-features .fa-check {
-      color: var(--success-color);
-    }
-
-    .plan-features .fa-times {
-      color: var(--danger-color);
-    }
-
-    .plan-description {
-      margin-bottom: 2rem;
-      line-height: 1.6;
-      opacity: 0.9;
-    }
-
-    .plan-action {
-      text-align: center;
-    }
-
-    .btn-secondary {
-      display: inline-block;
-      background: transparent;
-      color: var(--light-color);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.3s;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--primary-light);
-    }
-
-    .btn-premium {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.3s;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
-    }
-
-    .btn-premium:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
-    }
-
-    .btn-premium i {
-      margin-right: 0.5rem;
-    }
-
-    /* FAQ section */
-    .faq-container {
-      margin-top: 1rem;
-    }
-
-    .faq-item {
-      margin-bottom: 1rem;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .faq-question {
-      padding: 1.25rem;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.3s;
-    }
-
-    .faq-question h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-
-    .faq-question i {
-      transition: all 0.3s;
-    }
-
-    .faq-item.active .faq-question {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .faq-item.active .faq-question i {
-      transform: rotate(180deg);
-    }
-
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      padding: 0 1.25rem;
-    }
-
-    .faq-item.active .faq-answer {
-      padding-bottom: 1.25rem;
-    }
-
-    .faq-answer p {
-      margin-bottom: 1rem;
-      line-height: 1.6;
-      opacity: 0.9;
-    }
-
-    .faq-answer ul {
-      padding-left: 1.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .faq-answer ul li {
-      margin-bottom: 0.5rem;
-    }
-
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-      .plan-container {
-        flex-direction: column;
-        align-items: center;
+    @keyframes moveParticle {
+      0% {
+        transform: translate(0, 0);
       }
-
-      .plan {
-        width: 100%;
+      100% {
+        transform: translate(var(--x), var(--y));
       }
     }
   </style>
