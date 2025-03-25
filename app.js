@@ -157,7 +157,6 @@ const subscriptionSchema = new mongoose.Schema({
     }
   }]
 });
-
 // モデルのインデックス設定
 urlSchema.index({ shortCode: 1 });
 urlSchema.index({ customSlug: 1 });
@@ -378,7 +377,6 @@ app.get('/', (req, res) => {
     res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
   }
 });
-
 // ログインページ
 app.get('/login', (req, res) => {
   try {
@@ -511,259 +509,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// ログアウト処理
-app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/login');
-});
-
-// ダッシュボード - サブスクリプション状態を確認
-app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionInfo, async (req, res) => {
-  try {
-    console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
-    const userId = req.session.userId;
-    
-    // 並行してクエリを実行
-    const startTime = Date.now();
-    let user, urls, domains;
-    
-    try {
-      [user, urls, domains] = await Promise.all([
-        User.findById(userId).lean(),
-        Url.find({ userId }).sort({ createdAt: -1 }).lean(),
-        Domain.find({ userId }).lean()
-      ]);
-    } catch (dbErr) {
-      console.error('データベース取得エラー:', dbErr);
-      // エラー発生時は空の配列を設定
-      urls = [];
-      domains = [];
-    }
-    
-    console.log(`データ取得完了: ${Date.now() - startTime}ms`);
-    
-    if (!user) {
-      req.session.destroy();
-      return res.redirect('/login');
-    }
-    
-    console.log(`取得したURL数: ${urls ? urls.length : 0}`);
-    console.log(`取得したドメイン数: ${domains ? domains.length : 0}`);
-    
-    // nullチェックを追加
-    urls = urls || [];
-    domains = domains || [];
-    
-    // 時間帯別統計を計算
-    const timeStats = {};
-    for (const url of urls) {
-      if (url.accessLogs && url.accessLogs.length > 0) {
-        url.accessLogs.forEach(log => {
-          const hour = new Date(log.timestamp).getHours();
-          if (!timeStats[hour]) {
-            timeStats[hour] = 0;
-          }
-          timeStats[hour]++;
-        });
-      }
-    }
-    
-    // 時間帯順にソート
-    const hourlyStats = Array.from({length: 24}, (_, i) => ({
-      hour: i,
-      count: timeStats[i] || 0
-    }));
-    
-    // デバッグ: URLの内容を確認
-    if (urls.length > 0) {
-      console.log('最新のURLデータ例:', JSON.stringify(urls[0]));
-    }
-    
-    const renderStart = Date.now();
-    console.log('レンダリング開始:', new Date().toISOString());
-    
-    // プレミアム状態をビューに渡す
-    const isPremium = user.hasPremium;
-    
-    res.render('dashboard', {
-      urls,
-      domains,
-      user,
-      hourlyStats,
-      isPremium, // プレミアムステータスをビューに渡す
-      error: req.query.error || null,
-      success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site',
-      subscription: res.locals.subscription
-    }, (err, html) => {
-      if (err) {
-        console.error('レンダリングエラー:', err);
-        return res.status(500).send('レンダリングエラーが発生しました: ' + err.message);
-      }
-      console.log(`レンダリング完了: ${Date.now() - renderStart}ms`);
-      res.send(html);
-    });
-  } catch (err) {
-    console.error('ダッシュボード表示エラー:', err);
-    return res.render('dashboard', {
-      urls: [],
-      domains: [],
-      user: { username: '不明なユーザー' },
-      hourlyStats: Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })),
-      isPremium: false,
-      error: 'データの取得中にエラーが発生しました: ' + err.message,
-      success: null,
-      appDomain: req.appDomain || 'king-rule.site',
-      subscription: null
-    });
-  }
-});
-
-// URL詳細ページ - プレミアムユーザー限定
-app.get('/urls/detail/:id', isAuthenticated, isPremiumUser, getSubscriptionInfo, async (req, res) => {
-  try {
-    const url = await Url.findOne({
-      _id: req.params.id,
-      userId: req.session.userId
-    });
-    
-    if (!url) {
-      return res.redirect('/dashboard?error=URLが見つかりません');
-    }
-    
-    // 時間帯別データの集計
-    const hourlyData = Array.from({length: 24}, (_, i) => ({
-      hour: i,
-      count: 0
-    }));
-    
-    // 日付別データ（過去30日）
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const dailyData = {};
-    
-    for (const log of url.accessLogs || []) {
-      const date = new Date(log.timestamp);
-      const hour = date.getHours();
-      hourlyData[hour].count++;
-      
-      // 日付別データ
-      if (date >= thirtyDaysAgo) {
-        const dateStr = date.toISOString().split('T')[0];
-        if (!dailyData[dateStr]) {
-          dailyData[dateStr] = 0;
-        }
-        dailyData[dateStr]++;
-      }
-    }
-    
-    const dailyChartData = Object.keys(dailyData).sort().map(date => ({
-      date,
-      count: dailyData[date]
-    }));
-    
-    const domain = url.domainId ? await Domain.findById(url.domainId) : null;
-    
-    res.render('url-detail', {
-      url,
-      domain,
-      hourlyData,
-      dailyChartData,
-      error: req.query.error || null,
-      success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site',
-      subscription: res.locals.subscription
-    });
-    
-  } catch (err) {
-    console.error('URL詳細表示エラー:', err);
-    res.redirect('/dashboard?error=URL詳細の読み込み中にエラーが発生しました: ' + err.message);
-  }
-});
-
-// URLデータをJSON形式で確認するためのテストエンドポイント - 開発環境のみ
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/test-urls', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.session.userId;
-      const urls = await Url.find({ userId }).lean();
-      res.json({ 
-        success: true, 
-        count: urls.length,
-        urls: urls
-      });
-    } catch (err) {
-      res.status(500).json({ 
-        success: false, 
-        error: err.message 
-      });
-    }
-  });
-}
-
-// 一時的なダッシュボードルート追加（セッション問題の回避策）
-app.get('/dashboard-temp', getSubscriptionInfo, async (req, res) => {
-  try {
-    const userId = req.query.userId;
-    if (!userId) {
-      return res.redirect('/login');
-    }
-    
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.redirect('/login');
-    }
-    
-    // 通常のダッシュボードと同じ処理
-    const [urls, domains] = await Promise.all([
-      Url.find({ userId }).sort({ createdAt: -1 }).lean(),
-      Domain.find({ userId }).lean()
-    ]);
-    
-    // 時間帯別統計を計算
-    const timeStats = {};
-    for (const url of urls || []) {
-      if (url.accessLogs && url.accessLogs.length > 0) {
-        url.accessLogs.forEach(log => {
-          const hour = new Date(log.timestamp).getHours();
-          if (!timeStats[hour]) {
-            timeStats[hour] = 0;
-          }
-          timeStats[hour]++;
-        });
-      }
-    }
-    
-    // 時間帯順にソート
-    const hourlyStats = Array.from({length: 24}, (_, i) => ({
-      hour: i,
-      count: timeStats[i] || 0
-    }));
-    
-    // セッションに再度ユーザーIDを設定
-    req.session.userId = userId;
-    req.session.save();
-    
-    // プレミアム状態をビューに渡す
-    const isPremium = user.hasPremium;
-    
-    return res.render('dashboard', {
-      urls: urls || [],
-      domains: domains || [],
-      user,
-      hourlyStats,
-      isPremium,
-      error: req.query.error || null,
-      success: req.query.success || null,
-      appDomain: req.appDomain || 'king-rule.site',
-      subscription: res.locals.subscription
-    });
-  } catch (err) {
-    console.error('一時ダッシュボード表示エラー:', err);
-    return res.redirect('/login');
-  }
-});
-
 // URL短縮処理 - プレミアムユーザー限定
 app.post('/shorten', isAuthenticated, async (req, res) => {
   const { originalUrl, domainId, customSlug } = req.body;
@@ -853,4 +598,37 @@ app.post('/shorten', isAuthenticated, async (req, res) => {
     console.error(err);
     return res.redirect('/dashboard?error=URL短縮中にエラーが発生しました: ' + err.message);
   }
+});
+
+// ログアウト処理
+app.get('/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/login');
+});
+
+// サーバーを起動
+const server = app.listen(PORT, HOST, () => {
+  console.log(`ROYAL LINK サーバーが起動しました - ポート: ${PORT}, ホスト: ${HOST}`);
+  console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// エラーハンドリング
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`ポート ${PORT} は既に使用されています`);
+  } else {
+    console.error('サーバー起動エラー:', err);
+  }
+});
+
+// グレースフルシャットダウン
+process.on('SIGTERM', () => {
+  console.log('SIGTERM シグナルを受信しました。サーバーをシャットダウンします。');
+  server.close(() => {
+    console.log('サーバーが正常にシャットダウンされました。');
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB接続を閉じました。');
+      process.exit(0);
+    });
+  });
 });
