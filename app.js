@@ -180,10 +180,10 @@ urlSchema.index({ shortCode: 1 });
 urlSchema.index({ customSlug: 1 });
 domainSchema.index({ domainName: 1 });
 
-const User = mongoose.model('User', userSchema);
-const Domain = mongoose.model('Domain', domainSchema);
-const Url = mongoose.model('Url', urlSchema);
-const Subscription = mongoose.model('Subscription', subscriptionSchema);
+//const User = mongoose.model('User', userSchema);
+//const Domain = mongoose.model('Domain', domainSchema);
+//onst Url = mongoose.model('Url', urlSchema);
+//const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
  
 // PayPalヘルパーの読み込み
