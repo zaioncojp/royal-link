@@ -48,9 +48,96 @@
             <i class="fas fa-arrow-right"></i> プランを見る
           </a>
         </div>
-      <% } else { %>
-        <!-- URL shortening form -->
+        
+        <!-- 無料プラン情報表示 -->
+        <div class="free-plan-info">
+          <div class="free-plan-status">
+            <i class="fas fa-info-circle"></i>
+            <div class="free-plan-details">
+              <h3>無料プラン</h3>
+              <div class="link-count">
+                <% 
+                  // URLの数をカウント
+                  const urlCount = urls ? urls.length : 0;
+                  const progressPercent = Math.min(100, (urlCount / 3) * 100);
+                %>
+                <div class="link-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: <%= progressPercent %>%;"></div>
+                  </div>
+                  <div class="progress-text">
+                    <span><%= urlCount %> / 3</span> 短縮リンク
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="plan-features">
+            <div class="feature <%= urlCount < 3 ? 'available' : 'unavailable' %>">
+              <i class="fas fa-check-circle"></i> 基本URL短縮 (king-rule.site)
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> カスタムドメイン
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> アクセス統計
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> カスタムスラグ
+            </div>
+          </div>
+          <a href="/subscription/plans" class="btn-upgrade">
+            <i class="fas fa-crown"></i> プレミアムにアップグレード
+          </a>
+        </div>
+      <% } %>
+
+      <!-- URL shortening form -->
+      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+        <!-- プレミアムユーザー用のフォーム -->
         <%- include('partials/url-form') %>
+      <% } else { %>
+        <!-- 無料プラン用のフォーム -->
+        <section class="url-shorten-section">
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fas fa-link"></i> 新しいURLを短縮</h2>
+              <span class="free-plan-badge">無料プラン</span>
+            </div>
+            <div class="card-body">
+              <% if (urls && urls.length >= 3) { %>
+                <div class="limit-reached">
+                  <i class="fas fa-exclamation-circle"></i>
+                  <p>無料プランでは最大3個までの短縮リンクしか作成できません。</p>
+                  <a href="/subscription/plans" class="btn-premium-small">
+                    プレミアムにアップグレード
+                  </a>
+                </div>
+              <% } else { %>
+                <form action="/shorten" method="POST" class="url-form">
+                  <div class="form-group">
+                    <label for="originalUrl">元のURL:</label>
+                    <input 
+                      type="text" 
+                      id="originalUrl" 
+                      name="originalUrl" 
+                      placeholder="https://example.com/long-url-to-shorten" 
+                      required
+                    >
+                  </div>
+                  
+                  <input type="hidden" name="domainId" value="default">
+                  
+                  <div class="upgrade-message">
+                    <p>カスタムスラグやカスタムドメインを使用するには <a href="/subscription/plans">プレミアムプラン</a> にアップグレードしてください。</p>
+                  </div>
+                  
+                  <button type="submit" class="btn-primary">短縮する</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </section>
       <% } %>
 
       <!-- URLs list -->
@@ -61,16 +148,71 @@
           </div>
           <div class="card-body">
             <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
-              <div class="premium-required">
-                <i class="fas fa-lock"></i>
-                <h3>プレミアム機能</h3>
-                <p>この機能を利用するには、プレミアムプランへの登録が必要です。</p>
-                <a href="/subscription/plans" class="btn-premium-small">
-                  プレミアムに登録する
-                </a>
-              </div>
+              <% if (urls && urls.length > 0) { %>
+                <!-- 無料プラン用の簡易リスト表示 -->
+                <div class="url-list">
+                  <div class="table-responsive">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>元URL</th>
+                          <th>短縮URL</th>
+                          <th>クリック数</th>
+                          <th>作成日</th>
+                          <th>アクション</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% for (let i = 0; i < urls.length; i++) { %>
+                          <tr>
+                            <td class="original-url" title="<%= urls[i].originalUrl %>">
+                              <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
+                            </td>
+                            <td>
+                              <% 
+                                const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
+                                let shortUrl = '';
+                                if (urls[i].customSlug) {
+                                  shortUrl = `https://${domain}/${urls[i].customSlug}`;
+                                } else {
+                                  shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
+                                }
+                              %>
+                              <a href="<%= shortUrl %>" target="_blank">
+                                <%= shortUrl %>
+                              </a>
+                              <button class="copy-btn" data-url="<%= shortUrl %>">
+                                <i class="fas fa-copy"></i>
+                              </button>
+                            </td>
+                            <td><%= urls[i].clicks || 0 %></td>
+                            <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
+                            <td>
+                              <div class="action-buttons">
+                                <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
+                                  <i class="fas fa-trash"></i>
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        <% } %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="premium-feature-banner">
+                  <i class="fas fa-chart-bar"></i>
+                  <div class="feature-text">
+                    <h3>アクセス統計機能</h3>
+                    <p>プレミアムプランにアップグレードして、時間帯別・日別のアクセス統計を確認できます。</p>
+                  </div>
+                  <a href="/subscription/plans" class="btn-premium-small">アップグレード</a>
+                </div>
+              <% } else { %>
+                <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
+              <% } %>
             <% } else if (urls && urls.length > 0) { %>
-              <!-- タブ -->
+              <!-- プレミアムユーザー用の統計付きリスト表示 -->
               <div class="tabs">
                 <button class="tab-btn active" data-tab="list">リスト表示</button>
                 <button class="tab-btn" data-tab="analytics">アクセス統計</button>
@@ -264,7 +406,7 @@
                   <h3>アクティブ</h3>
                   <% if (subscription) { %>
                     <p>次回更新日: <%= new Date(subscription.nextPaymentDate).toLocaleDateString() %></p>
-                    <% if (subscription.planType === 'annual') { %>
+                    <% if (subscription.plan === 'annual') { %>
                       <span class="badge badge-premium">年間プラン</span>
                     <% } else { %>
                       <span class="badge badge-premium">月額プラン</span>
@@ -587,6 +729,7 @@
     }
     
     .copy-btn:hover {
+      background: rgba(110, 142, 251.copy-btn:hover {
       background: rgba(110, 142, 251, 0.2);
     }
     
@@ -724,6 +867,213 @@
       to { opacity: 1; transform: translateY(0); }
     }
     
+    /* 無料プラン情報表示のスタイル */
+    .free-plan-info {
+      background: rgba(26, 32, 44, 0.6);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .free-plan-status {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .free-plan-status i {
+      font-size: 2.5rem;
+      color: #4facfe;
+    }
+    
+    .free-plan-details h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    
+    .link-count {
+      margin-top: 0.5rem;
+    }
+    
+    .link-progress {
+      margin-top: 0.5rem;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--light-color);
+      opacity: 0.8;
+    }
+    
+    .plan-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    
+    .feature i {
+      margin-right: 0.5rem;
+    }
+    
+    .feature.available {
+      background: rgba(72, 187, 120, 0.1);
+      color: var(--success-color);
+      border: 1px solid rgba(72, 187, 120, 0.2);
+    }
+    
+    .feature.unavailable {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-upgrade {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
+    }
+    
+    .btn-upgrade:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .btn-upgrade i {
+      margin-right: 0.5rem;
+    }
+    
+    /* 無料プランバッジ */
+    .free-plan-badge {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 25px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 1rem;
+    }
+    
+    /* 制限到達時のメッセージ */
+    .limit-reached {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+      background: rgba(255, 107, 107, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+    
+    .limit-reached i {
+      font-size: 2.5rem;
+      color: var(--danger-color);
+      margin-bottom: 1rem;
+    }
+    
+    .limit-reached p {
+      margin-bottom: 1.5rem;
+      max-width: 500px;
+    }
+    
+    /* アップグレードメッセージ */
+    .upgrade-message {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .upgrade-message a {
+      color: #4facfe;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    
+    .upgrade-message a:hover {
+      text-decoration: underline;
+    }
+    
+    /* プレミアム機能バナー */
+    .premium-feature-banner {
+      display: flex;
+      align-items: center;
+      padding: 1.5rem;
+      background: rgba(26, 32, 44, 0.4);
+      border-radius: 8px;
+      margin-top: 2rem;
+      border: 1px dashed rgba(79, 172, 254, 0.3);
+    }
+    
+    .premium-feature-banner i {
+      font-size: 2.5rem;
+      color: #4facfe;
+      margin-right: 1.5rem;
+    }
+    
+    .feature-text {
+      flex: 1;
+    }
+    
+    .feature-text h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    
+    .feature-text p {
+      font-size: 0.95rem;
+      opacity: 0.8;
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       .subscription-banner {
@@ -749,6 +1099,35 @@
       .status-actions {
         width: 100%;
         justify-content: center;
+      }
+      
+      .free-plan-info {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .free-plan-status {
+        flex-direction: column;
+        margin-bottom: 1rem;
+      }
+      
+      .plan-features {
+        justify-content: center;
+        margin-bottom: 1.5rem;
+      }
+      
+      .premium-feature-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .premium-feature-banner i {
+        margin-right: 0;
+        margin-bottom: 1rem;
+      }
+      
+      .feature-text {
+        margin-bottom: 1rem;
       }
     }
   </style>
