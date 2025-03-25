@@ -42,7 +42,7 @@ app.use((req, res, next) => {
   res.locals.baseUrl = `https://${DOMAIN}`;
   next();
 });
-<<<<<<< HEAD
+
 
 =======
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
@@ -58,7 +58,6 @@ const sessionStore = MongoStore.create({
   ttl: 60 * 60 * 24, // 1日
   autoRemove: 'native',
   touchAfter: 24 * 3600 // 24時間ごとに更新
-<<<<<<< HEAD
 =======
 });
 
@@ -93,7 +92,7 @@ sessionStore.on('error', function(error) {
   console.error('セッションストアエラー:', error);
 });
 
-<<<<<<< HEAD
+
 // セッション設定
 app.use(session({
   secret: process.env.SESSION_SECRET || 'royal-link-secret-key',
@@ -244,7 +243,7 @@ const isPremiumUser = async (req, res, next) => {
     res.redirect('/dashboard?error=ユーザー情報の確認中にエラーが発生しました');
   }
 };
-<<<<<<< HEAD
+
 
 =======
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
@@ -574,7 +573,7 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
   }
 });
 
-<<<<<<< HEAD
+
 
 =======
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
@@ -631,7 +630,7 @@ app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, as
       // プレミアムユーザーの場合、カスタム設定を適用
       urlData.customSlug = customSlug || null;
       urlData.domainId = domainToUse;
-<<<<<<< HEAD
+
     }
     
     // 新しいURL作成
@@ -1248,7 +1247,7 @@ async function handleSubscriptionCancelled(subscriptionId) {
     // 元のURLにリダイレクト
     res.redirect(url.originalUrl);
   } catch (err) {
-<<<<<<< HEAD
+
     console.error('短縮URLリダイレクトエラー:', err);
     res.status(500).render('404', { message: 'エラーが発生しました' });
 =======
@@ -1257,7 +1256,7 @@ async function handleSubscriptionCancelled(subscriptionId) {
   }
 }
 
-<<<<<<< HEAD
+
 // URL詳細ページ、ドメイン追加、認証関連、サブスクリプション関連のルート定義...
 // (長いため、省略しています。これらは元のapp.jsファイルと同じ内容です)
 =======
