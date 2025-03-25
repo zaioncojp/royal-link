@@ -135,12 +135,52 @@
             <div class="daily-chart-container">
               <% for (let i = 0; i < dailyChartData.length; i++) { %>
                 <div class="chart-bar">
-                  <div class="bar" style="height: <%= Math.max(20, (dailyChartData[i].count / Math.max(...dailyChartData.map(s => s.count)) * 250)) %>px">
+                  <div class="bar" style="height: <%= Math.max(20, (dailyChartData[i].count / Math.max(...dailyChartData.map(s => s.count || 1)) * 250)) %>px">
                     <span class="clicks"><%= dailyChartData[i].count %></span>
                   </div>
                   <span class="code"><%= new Date(dailyChartData[i].date).toLocaleDateString() %></span>
                 </div>
               <% } %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- アクセスログ -->
+      <% if (url.accessLogs && url.accessLogs.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-list"></i> 最近のアクセスログ</h2>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>日時</th>
+                    <th>IPアドレス</th>
+                    <th>ブラウザ</th>
+                    <th>リファラー</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% 
+                    // 最新の10件だけ表示
+                    const recentLogs = [...url.accessLogs].reverse().slice(0, 10);
+                  %>
+                  <% for (let i = 0; i < recentLogs.length; i++) { %>
+                    <tr>
+                      <td><%= new Date(recentLogs[i].timestamp).toLocaleString() %></td>
+                      <td><%= recentLogs[i].ipAddress %></td>
+                      <td><%= recentLogs[i].userAgent ? (recentLogs[i].userAgent.length > 50 ? recentLogs[i].userAgent.substring(0, 50) + '...' : recentLogs[i].userAgent) : 'unknown' %></td>
+                      <td><%= recentLogs[i].referer || 'direct' %></td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+            <div class="log-summary">
+              <p>全 <%= url.accessLogs.length %> 件のアクセスログのうち最新の10件を表示しています。</p>
             </div>
           </div>
         </div>
@@ -219,6 +259,10 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     
+    .copy-btn.copied {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+    }
+    
     .time-chart-container,
     .daily-chart-container {
       display: flex;
@@ -284,6 +328,39 @@
       font-size: 0.65rem;
     }
     
+    .log-summary {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .table-responsive {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    table th, 
+    table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    table th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+    }
+    
+    table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
     @media (max-width: 768px) {
       .info-group {
         flex-direction: column;
@@ -292,6 +369,12 @@
       .info-group label {
         width: 100%;
         margin-bottom: 5px;
+      }
+      
+      table th, 
+      table td {
+        padding: 8px 5px;
+        font-size: 0.85rem;
       }
     }
   </style>
