@@ -1,416 +1,693 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ダッシュボード - ROYAL LINK</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<%- include('partials/header') %>
+<body>
+  <!-- Background effects -->
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <%- include('partials/sidebar') %>
+
+    <!-- Main content -->
+    <div class="main-content">
+      <header class="top-bar">
+        <h1>ダッシュボード</h1>
+        <a href="/dashboard" class="refresh-btn">
+          <i class="fas fa-sync-alt"></i> 更新
+        </a>
+      </header>
+
+      <% if (error) { %>
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-circle"></i> <%= error %>
+        </div>
+      <% } %>
+
+      <% if (success) { %>
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle"></i> <%= success %>
+        </div>
+      <% } %>
+
+      <!-- Subscription Status Check -->
+      <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
+        <div class="subscription-banner">
+          <div class="subscription-message">
+            <i class="fas fa-crown"></i>
+            <div class="message-content">
+              <h3>プレミアム機能を利用するにはサブスクリプションが必要です</h3>
+              <p>URL短縮、独自ドメイン、詳細な統計情報などの機能を使用するには、プレミアムプランにアップグレードしてください。</p>
+            </div>
+          </div>
+          <a href="/subscription/plans" class="btn-premium">
+            <i class="fas fa-arrow-right"></i> プランを見る
+          </a>
+        </div>
+        
+        <!-- 無料プラン情報表示 -->
+        <div class="free-plan-info">
+          <div class="free-plan-status">
+            <i class="fas fa-info-circle"></i>
+            <div class="free-plan-details">
+              <h3>無料プラン</h3>
+              <div class="link-count">
+                <% 
+                  // URLの数をカウント
+                  const urlCount = urls ? urls.length : 0;
+                  const progressPercent = Math.min(100, (urlCount / 3) * 100);
+                %>
+                <div class="link-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: <%= progressPercent %>%;"></div>
+                  </div>
+                  <div class="progress-text">
+                    <span><%= urlCount %> / 3</span> 短縮リンク
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="plan-features">
+            <div class="feature <%= urlCount < 3 ? 'available' : 'unavailable' %>">
+              <i class="fas fa-check-circle"></i> 基本URL短縮 (king-rule.site)
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> カスタムドメイン
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> アクセス統計
+            </div>
+            <div class="feature unavailable">
+              <i class="fas fa-times-circle"></i> カスタムスラグ
+            </div>
+          </div>
+          <a href="/subscription/plans" class="btn-upgrade">
+            <i class="fas fa-crown"></i> プレミアムにアップグレード
+          </a>
+        </div>
+      <% } %>
+
+      <!-- URL shortening form -->
+      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+        <!-- プレミアムユーザー用のフォーム -->
+        <%- include('partials/url-form') %>
+      <% } else { %>
+        <!-- 無料プラン用のフォーム -->
+        <section class="url-shorten-section">
+          <div class="card">
+            <div class="card-header">
+              <h2><i class="fas fa-link"></i> 新しいURLを短縮</h2>
+              <span class="free-plan-badge">無料プラン</span>
+            </div>
+            <div class="card-body">
+              <% if (urls && urls.length >= 3) { %>
+                <div class="limit-reached">
+                  <i class="fas fa-exclamation-circle"></i>
+                  <p>無料プランでは最大3個までの短縮リンクしか作成できません。</p>
+                  <a href="/subscription/plans" class="btn-premium-small">
+                    プレミアムにアップグレード
+                  </a>
+                </div>
+              <% } else { %>
+                <form action="/shorten" method="POST" class="url-form">
+                  <div class="form-group">
+                    <label for="originalUrl">元のURL:</label>
+                    <input 
+                      type="text" 
+                      id="originalUrl" 
+                      name="originalUrl" 
+                      placeholder="https://example.com/long-url-to-shorten" 
+                      required
+                    >
+                  </div>
+                  
+                  <input type="hidden" name="domainId" value="default">
+                  
+                  <div class="upgrade-message">
+                    <p>カスタムスラグやカスタムドメインを使用するには <a href="/subscription/plans">プレミアムプラン</a> にアップグレードしてください。</p>
+                  </div>
+                  
+                  <button type="submit" class="btn-primary">短縮する</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- URLs list -->
+      <section class="urls-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> 短縮URL一覧</h2>
+          </div>
+          <div class="card-body">
+            <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
+              <% if (urls && urls.length > 0) { %>
+                <!-- 無料プラン用の簡易リスト表示 -->
+                <div class="url-list">
+                  <div class="table-responsive">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>元URL</th>
+                          <th>短縮URL</th>
+                          <th>クリック数</th>
+                          <th>作成日</th>
+                          <th>アクション</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% for (let i = 0; i < urls.length; i++) { %>
+                          <tr>
+                            <td class="original-url" title="<%= urls[i].originalUrl %>">
+                              <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
+                            </td>
+                            <td>
+                              <% 
+                                const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
+                                let shortUrl = '';
+                                if (urls[i].customSlug) {
+                                  shortUrl = `https://${domain}/${urls[i].customSlug}`;
+                                } else {
+                                  shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
+                                }
+                              %>
+                              <a href="<%= shortUrl %>" target="_blank">
+                                <%= shortUrl %>
+                              </a>
+                              <button class="copy-btn" data-url="<%= shortUrl %>">
+                                <i class="fas fa-copy"></i>
+                              </button>
+                            </td>
+                            <td><%= urls[i].clicks || 0 %></td>
+                            <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
+                            <td>
+                              <div class="action-buttons">
+                                <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
+                                  <i class="fas fa-trash"></i>
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        <% } %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="premium-feature-banner">
+                  <i class="fas fa-chart-bar"></i>
+                  <div class="feature-text">
+                    <h3>アクセス統計機能</h3>
+                    <p>プレミアムプランにアップグレードして、時間帯別・日別のアクセス統計を確認できます。</p>
+                  </div>
+                  <a href="/subscription/plans" class="btn-premium-small">アップグレード</a>
+                </div>
+              <% } else { %>
+                <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
+              <% } %>
+            <% } else if (urls && urls.length > 0) { %>
+              <!-- プレミアムユーザー用の統計付きリスト表示 -->
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="list">リスト表示</button>
+                <button class="tab-btn" data-tab="analytics">アクセス統計</button>
+              </div>
+              
+              <!-- URL一覧タブ -->
+              <div id="list-tab" class="tab-panel active">
+                <div class="url-list">
+                  <div class="table-responsive">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>元URL</th>
+                          <th>短縮URL</th>
+                          <th>クリック数</th>
+                          <th>作成日</th>
+                          <th>アクション</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% for (let i = 0; i < urls.length; i++) { %>
+                          <tr>
+                            <td class="original-url" title="<%= urls[i].originalUrl %>">
+                              <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
+                            </td>
+                            <td>
+                              <% 
+                                const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
+                                let shortUrl = '';
+                                if (urls[i].customSlug) {
+                                  shortUrl = `https://${domain}/${urls[i].customSlug}`;
+                                } else {
+                                  shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
+                                }
+                              %>
+                              <a href="<%= shortUrl %>" target="_blank">
+                                <%= shortUrl %>
+                              </a>
+                              <button class="copy-btn" data-url="<%= shortUrl %>">
+                                <i class="fas fa-copy"></i>
+                              </button>
+                            </td>
+                            <td><%= urls[i].clicks || 0 %></td>
+                            <td><%= new Date(urls[i].createdAt).toLocaleDateString() %></td>
+                            <td>
+                              <div class="action-buttons">
+                                <a href="/urls/detail/<%= urls[i]._id %>" class="btn-small btn-info" title="詳細">
+                                  <i class="fas fa-chart-bar"></i>
+                                </a>
+                                <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
+                                  <i class="fas fa-trash"></i>
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        <% } %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- アクセス統計タブ -->
+              <div id="analytics-tab" class="tab-panel">
+                <div class="analytics-chart">
+                  <h3>クリック数の推移</h3>
+                  <div class="chart-container">
+                    <% 
+                      // クリック数の多い順にソート
+                      const sortedUrls = [...urls].sort((a, b) => (b.clicks || 0) - (a.clicks || 0)).slice(0, 10);
+                      const maxClicks = Math.max(...sortedUrls.map(url => url.clicks || 0), 1);
+                    %>
+                    
+                    <% for (let i = 0; i < sortedUrls.length; i++) { %>
+                      <div class="chart-bar">
+                        <div class="bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
+                          <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
+                        </div>
+                        <span class="code"><%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %></span>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+                
+                <!-- 時間帯別アクセスグラフを追加 -->
+                <div class="analytics-chart">
+                  <h3>時間帯別アクセス</h3>
+                  <div class="time-chart-container">
+                    <% for (let i = 0; i < hourlyStats.length; i++) { %>
+                      <div class="chart-bar">
+                        <div class="bar" style="height: <%= Math.max(20, (hourlyStats[i].count / Math.max(...hourlyStats.map(s => s.count || 1)) * 250)) %>px">
+                          <span class="clicks"><%= hourlyStats[i].count %></span>
+                        </div>
+                        <span class="code"><%= hourlyStats[i].hour %>時</span>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% } else { %>
+              <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
+            <% } %>
+          </div>
+        </div>
+      </section>
+
+      <!-- Domains list -->
+      <section class="domains-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-globe"></i> ドメイン一覧</h2>
+            <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+              <a href="/domains/add" class="btn-small">
+                <i class="fas fa-plus"></i> ドメイン追加
+              </a>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
+              <div class="premium-required">
+                <i class="fas fa-lock"></i>
+                <h3>プレミアム機能</h3>
+                <p>独自ドメイン機能を利用するには、プレミアムプランへの登録が必要です。</p>
+                <a href="/subscription/plans" class="btn-premium-small">
+                  プレミアムに登録する
+                </a>
+              </div>
+            <% } else if (domains && domains.length > 0) { %>
+              <div class="domains-list">
+                <div class="table-responsive">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ドメイン名</th>
+                        <th>状態</th>
+                        <th>作成日</th>
+                        <th>アクション</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% for (let i = 0; i < domains.length; i++) { %>
+                        <tr>
+                          <td><%= domains[i].domainName %></td>
+                          <td>
+                            <% if (domains[i].verified) { %>
+                              <span class="badge badge-success">検証済み</span>
+                            <% } else { %>
+                              <span class="badge badge-warning">未検証</span>
+                            <% } %>
+                          </td>
+                          <td><%= new Date(domains[i].createdAt).toLocaleDateString() %></td>
+                          <td>
+                            <div class="action-buttons">
+                              <% if (!domains[i].verified) { %>
+                                <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-primary" title="検証">
+                                  <i class="fas fa-check-circle"></i>
+                                </a>
+                              <% } %>
+                              <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？');">
+                                <i class="fas fa-trash"></i>
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      <% } %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            <% } else { %>
+              <p class="no-data">登録されたドメインがありません。「ドメイン追加」ボタンからドメインを追加できます。</p>
+            <% } %>
+          </div>
+        </div>
+      </section>
+
+      <!-- Subscription Status (if active) -->
+      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+      <section class="subscription-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-crown"></i> プレミアムステータス</h2>
+          </div>
+          <div class="card-body">
+            <div class="subscription-status">
+              <div class="status-info">
+                <div class="status-icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="status-details">
+                  <h3>アクティブ</h3>
+                  <% if (subscription) { %>
+                    <p>次回更新日: <%= new Date(subscription.nextPaymentDate).toLocaleDateString() %></p>
+                    <% if (subscription.plan === 'annual') { %>
+                      <span class="badge badge-premium">年間プラン</span>
+                    <% } else { %>
+                      <span class="badge badge-premium">月額プラン</span>
+                    <% } %>
+                  <% } else { %>
+                    <p>プレミアム機能が有効です</p>
+                  <% } %>
+                </div>
+              </div>
+              <div class="status-actions">
+                <a href="/subscription/manage" class="btn-secondary">
+                  <i class="fas fa-cog"></i> 管理
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    // タブ切り替え機能
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tabId = this.getAttribute('data-tab');
+          
+          // 全てのタブボタンからアクティブクラスを削除
+          tabBtns.forEach(btn => btn.classList.remove('active'));
+          // 全てのタブパネルを非表示に
+          document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+          
+          // クリックされたタブボタンをアクティブに
+          this.classList.add('active');
+          // 対応するタブパネルを表示
+          document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+      });
+      
+      // コピーボタン機能を追加
+      const copyButtons = document.querySelectorAll('.copy-btn');
+      
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const url = this.getAttribute('data-url');
+          
+          navigator.clipboard.writeText(url)
+            .then(() => {
+              // コピー成功時の表示
+              const originalHTML = this.innerHTML;
+              this.innerHTML = '<i class="fas fa-check"></i>';
+              this.classList.add('copied');
+              
+              setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.classList.remove('copied');
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('コピーに失敗しました:', err);
+            });
+        });
+      });
+    });
+  </script>
+
   <style>
-    :root {
-      --primary-color: #6e8efb;
-      --primary-light: #a777e3;
-      --primary-gradient: linear-gradient(135deg, #6e8efb, #a777e3);
-      --secondary-color: #2d3748;
-      --dark-color: #1a202c;
-      --light-color: #f7fafc;
-      --success-color: #48bb78;
-      --warning-color: #ed8936;
-      --danger-color: #f56565;
-      --glass-bg: rgba(255, 255, 255, 0.1);
-      --glass-border: rgba(255, 255, 255, 0.2);
-      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-      --neon-glow: 0 0 10px rgba(110, 142, 251, 0.6), 0 0 20px rgba(110, 142, 251, 0.3);
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    body {
-      background: #0f0c29;
-      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+    /* 更新ボタンのスタイル */
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
       color: var(--light-color);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    
-    .dashboard-container {
-      display: flex;
-      min-height: 100vh;
-      position: relative;
-    }
-    
-    /* サイドバー */
-    .sidebar {
-      width: 260px;
-      background: rgba(26, 32, 44, 0.8);
-      backdrop-filter: blur(10px);
-      padding: 2rem 0;
-      position: fixed;
-      height: 100vh;
-      overflow-y: auto;
-      z-index: 10;
-      border-right: 1px solid var(--glass-border);
-      transition: all 0.3s ease;
-    }
-    
-    .logo {
-      padding: 0 1.5rem 2rem;
-      text-align: center;
-      border-bottom: 1px solid var(--glass-border);
-      margin-bottom: 2rem;
-    }
-    
-    .logo h2 {
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      font-weight: 700;
-      letter-spacing: 2px;
-      font-size: 1.8rem;
-      text-shadow: var(--neon-glow);
-    }
-    
-    .user-info {
-      display: flex;
-      align-items: center;
-      padding: 0 1.5rem;
-      margin-bottom: 2rem;
-    }
-    
-    .avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: var(--primary-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1rem;
-      box-shadow: var(--neon-glow);
-    }
-    
-    .avatar i {
-      font-size: 1.5rem;
-      color: white;
-    }
-    
-    .user-name {
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-    
-    .nav-menu ul {
-      list-style: none;
-      padding: 0;
-    }
-    
-    .nav-menu li {
-      margin-bottom: 0.5rem;
-      position: relative;
-    }
-    
-    .nav-menu li a {
-      display: flex;
-      align-items: center;
-      padding: 1rem 1.5rem;
-      color: var(--light-color);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
       text-decoration: none;
       transition: all 0.3s;
-      border-left: 4px solid transparent;
       font-weight: 500;
-    }
-    
-    .nav-menu li a i {
-      margin-right: 1rem;
-      font-size: 1.2rem;
-      width: 20px;
-      text-align: center;
-      transition: all 0.3s;
-    }
-    
-    .nav-menu li a:hover {
-      background: var(--glass-bg);
-      border-left-color: var(--primary-light);
-    }
-    
-    .nav-menu li a:hover i {
-      transform: translateX(5px);
-    }
-    
-    .nav-menu li.active a {
-      background: var(--glass-bg);
-      border-left-color: var(--primary-color);
-      box-shadow: inset 0 0 10px rgba(110, 142, 251, 0.1);
-    }
-    
-    .nav-menu li.active a i {
-      color: var(--primary-light);
-    }
-    
-    /* メインコンテンツ */
-    .main-content {
-      flex: 1;
-      padding: 2rem;
-      margin-left: 260px;
-      transition: all 0.3s ease;
-    }
-    
-    .top-bar {
-      margin-bottom: 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .top-bar h1 {
-      font-size: 2rem;
-      font-weight: 600;
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    
-    /* アラート */
-    .alert {
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      backdrop-filter: blur(5px);
-      animation: fadeIn 0.5s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .alert i {
-      margin-right: 1rem;
-      font-size: 1.2rem;
-    }
-    
-    .alert-error {
-      background: rgba(245, 101, 101, 0.2);
-      border-left: 4px solid var(--danger-color);
-    }
-    
-    .alert-success {
-      background: rgba(72, 187, 120, 0.2);
-      border-left: 4px solid var(--success-color);
-    }
-    
-    /* カード */
-    .card {
-      background: rgba(26, 32, 44, 0.6);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 2rem;
-      box-shadow: var(--card-shadow);
       border: 1px solid var(--glass-border);
-      transition: all 0.3s ease;
     }
     
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(31, 38, 135, 0.3);
+    .refresh-btn i {
+      margin-right: 0.5rem;
     }
     
-    .card-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--glass-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(26, 32, 44, 0.8);
-    }
-    
-    .card-header h2 {
-      font-size: 1.25rem;
-      margin: 0;
-      color: var(--light-color);
-      font-weight: 600;
-    }
-    
-    .card-body {
-      padding: 1.5rem;
-    }
-    
-    /* URL短縮フォーム */
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: var(--light-color);
-    }
-    
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--glass-border);
-      border-radius: 8px;
-      color: var(--light-color);
-      font-size: 1rem;
-      transition: all 0.3s;
-    }
-    
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.3);
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 1rem;
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    .btn-primary {
+    .refresh-btn:hover {
       background: var(--primary-gradient);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(110, 142, 251, 0.3);
       color: white;
-      border: none;
+      text-decoration: none;
+    }
+    
+    .refresh-btn:active {
+      transform: translateY(1px);
+    }
+    
+    /* サブスクリプションバナー */
+    .subscription-banner {
+      background: linear-gradient(135deg, rgba(110, 142, 251, 0.2), rgba(167, 119, 227, 0.2));
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(110, 142, 251, 0.3);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+    }
+    
+    .subscription-message {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .subscription-message i {
+      font-size: 2.5rem;
+      color: #ffc107;
+      text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    }
+    
+    .message-content h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .message-content p {
+      max-width: 600px;
+      opacity: 0.9;
+    }
+    
+    .btn-premium {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+      color: white;
       padding: 0.75rem 1.5rem;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 10px rgba(110, 142, 251, 0.3);
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(110, 142, 251, 0.4);
-    }
-    
-    .btn-primary:active {
-      transform: translateY(1px);
-    }
-    
-    .btn-small {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      border-radius: 6px;
-      background: var(--primary-gradient);
-      color: white;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
       transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
+      white-space: nowrap;
     }
     
-    .btn-small i {
+    .btn-premium:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
+    }
+    
+    .btn-premium i {
       margin-right: 0.5rem;
     }
     
-    .btn-small:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(110, 142, 251, 0.3);
-    }
-    
-    .btn-danger {
-      background: linear-gradient(135deg, #f56565, #e53e3e);
-    }
-    
-    .btn-info {
-      background: linear-gradient(135deg, #4299e1, #3182ce);
-    }
-    
-    /* テーブル */
-    .table-responsive {
-      overflow-x: auto;
-      border-radius: 8px;
-      background: rgba(26, 32, 44, 0.4);
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      overflow: hidden;
-    }
-    
-    table th,
-    table td {
-      padding: 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--glass-border);
-    }
-    
-    table th {
-      background: rgba(26, 32, 44, 0.8);
+    .btn-premium-small {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
       font-weight: 600;
-      color: var(--light-color);
-      white-space: nowrap;
-    }
-    
-    table tr:last-child td {
-      border-bottom: none;
-    }
-    
-    table tr {
+      text-decoration: none;
       transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
     }
     
-    table tr:hover {
-      background: rgba(110, 142, 251, 0.1);
+    .btn-premium-small:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
     }
     
-    .text-center {
+    /* Premium Required Message */
+    .premium-required {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1rem;
       text-align: center;
     }
     
-    .original-url {
-      max-width: 300px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .premium-required i {
+      font-size: 3rem;
+      color: rgba(255, 255, 255, 0.2);
+      margin-bottom: 1.5rem;
     }
     
-    .copy-btn {
-      background: none;
-      border: none;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.25rem;
-      margin-left: 0.5rem;
-      border-radius: 4px;
-      transition: all 0.3s;
+    .premium-required h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
     }
     
-    .copy-btn:hover {
-      background: rgba(110, 142, 251, 0.2);
+    .premium-required p {
+      margin-bottom: 1.5rem;
+      max-width: 500px;
+      opacity: 0.7;
     }
     
-    .copy-btn.copied {
+    /* サブスクリプションステータス */
+    .subscription-section {
+      margin-top: 2rem;
+    }
+    
+    .subscription-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .status-icon {
+      font-size: 2.5rem;
       color: var(--success-color);
     }
     
-    .action-buttons {
-      display: flex;
-      gap: 0.5rem;
+    .status-details h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
     }
     
-    /* バッジ */
+    .badge-premium {
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 142, 142, 0.2));
+      color: #ff6b6b;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+    
+    .status-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      background: transparent;
+      color: var(--light-color);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary-light);
+    }
+    
+    .btn-secondary i {
+      margin-right: 0.5rem;
+    }
+    
+    /* ドメイン一覧専用スタイル */
+    .domains-section {
+      margin-top: 2rem;
+    }
+    
     .badge {
       display: inline-block;
       padding: 0.25rem 0.75rem;
@@ -431,43 +708,38 @@
       border: 1px solid rgba(237, 137, 54, 0.3);
     }
     
-    /* タブ */
-    .tabs {
-      display: flex;
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid var(--glass-border);
+    /* URL一覧と統計タブ専用スタイル */
+    .original-url {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     
-    .tab-btn {
-      padding: 0.75rem 1.5rem;
+    .copy-btn {
       background: none;
       border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--light-color);
-      font-size: 1rem;
-      font-weight: 500;
+      color: var(--primary-color);
       cursor: pointer;
+      font-size: 1rem;
+      padding: 0.25rem;
+      margin-left: 0.5rem;
+      border-radius: 4px;
       transition: all 0.3s;
-      opacity: 0.7;
     }
     
-    .tab-btn:hover {
-      opacity: 1;
+    .copy-btn:hover {
+      background: rgba(110, 142, 251.copy-btn:hover {
+      background: rgba(110, 142, 251, 0.2);
     }
     
-    .tab-btn.active {
-      opacity: 1;
-      border-bottom-color: var(--primary-color);
-      color: var(--primary-light);
+    .copy-btn.copied {
+      color: var(--success-color);
     }
     
-    .tab-panel {
-      display: none;
-    }
-    
-    .tab-panel.active {
-      display: block;
-      animation: fadeIn 0.5s ease;
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
     }
     
     /* アクセス統計 */
@@ -476,6 +748,13 @@
       border-radius: 8px;
       padding: 1.5rem;
       margin-top: 1rem;
+    }
+    
+    .analytics-chart h3 {
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+      text-align: center;
+      color: var(--light-color);
     }
     
     .chart-container {
@@ -525,381 +804,332 @@
       opacity: 0.7;
     }
     
-    /* その他のスタイル */
-    .no-data {
-      text-align: center;
-      padding: 2rem;
-      color: var(--light-color);
-      opacity: 0.7;
-      font-size: 1.1rem;
+    /* 時間帯チャート */
+    .time-chart-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      height: 300px;
+      padding-bottom: 2rem;
+      overflow-x: auto;
     }
     
-    a {
+    .time-chart-container .chart-bar {
+      min-width: 30px;
+      margin: 0 2px;
+    }
+    
+    .time-chart-container .bar {
+      width: 20px;
+    }
+    
+    /* タブ */
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--light-color);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      opacity: 0.7;
+    }
+    
+    .tab-btn:hover {
+      opacity: 1;
+    }
+    
+    .tab-btn.active {
+      opacity: 1;
+      border-bottom-color: var(--primary-color);
       color: var(--primary-light);
-      text-decoration: none;
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 無料プラン情報表示のスタイル */
+    .free-plan-info {
+      background: rgba(26, 32, 44, 0.6);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .free-plan-status {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .free-plan-status i {
+      font-size: 2.5rem;
+      color: #4facfe;
+    }
+    
+    .free-plan-details h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    
+    .link-count {
+      margin-top: 0.5rem;
+    }
+    
+    .link-progress {
+      margin-top: 0.5rem;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--light-color);
+      opacity: 0.8;
+    }
+    
+    .plan-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
       transition: all 0.3s;
     }
     
-    a:hover {
-      color: var(--primary-color);
+    .feature i {
+      margin-right: 0.5rem;
+    }
+    
+    .feature.available {
+      background: rgba(72, 187, 120, 0.1);
+      color: var(--success-color);
+      border: 1px solid rgba(72, 187, 120, 0.2);
+    }
+    
+    .feature.unavailable {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-upgrade {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
+    }
+    
+    .btn-upgrade:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .btn-upgrade i {
+      margin-right: 0.5rem;
+    }
+    
+    /* 無料プランバッジ */
+    .free-plan-badge {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 25px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 1rem;
+    }
+    
+    /* 制限到達時のメッセージ */
+    .limit-reached {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+      background: rgba(255, 107, 107, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+    
+    .limit-reached i {
+      font-size: 2.5rem;
+      color: var(--danger-color);
+      margin-bottom: 1rem;
+    }
+    
+    .limit-reached p {
+      margin-bottom: 1.5rem;
+      max-width: 500px;
+    }
+    
+    /* アップグレードメッセージ */
+    .upgrade-message {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .upgrade-message a {
+      color: #4facfe;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    
+    .upgrade-message a:hover {
       text-decoration: underline;
     }
     
-    /* レスポンシブデザイン */
-    @media (max-width: 1024px) {
-      .form-row {
-        flex-direction: column;
-      }
+    /* プレミアム機能バナー */
+    .premium-feature-banner {
+      display: flex;
+      align-items: center;
+      padding: 1.5rem;
+      background: rgba(26, 32, 44, 0.4);
+      border-radius: 8px;
+      margin-top: 2rem;
+      border: 1px dashed rgba(79, 172, 254, 0.3);
     }
     
+    .premium-feature-banner i {
+      font-size: 2.5rem;
+      color: #4facfe;
+      margin-right: 1.5rem;
+    }
+    
+    .feature-text {
+      flex: 1;
+    }
+    
+    .feature-text h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    
+    .feature-text p {
+      font-size: 0.95rem;
+      opacity: 0.8;
+    }
+    
+    /* レスポンシブデザイン */
     @media (max-width: 768px) {
-      .sidebar {
-        width: 80px;
-        padding: 1rem 0;
-      }
-      
-      .logo h2 {
-        font-size: 1.2rem;
-      }
-      
-      .logo {
-        padding: 0 0.5rem 1rem;
-      }
-      
-      .user-info {
+      .subscription-banner {
         flex-direction: column;
-        padding: 0 0.5rem;
+        text-align: center;
       }
       
-      .user-name {
-        display: none;
+      .subscription-message {
+        flex-direction: column;
+        margin-bottom: 1.5rem;
       }
       
-      .avatar {
+      .status-info {
+        flex-direction: column;
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+      
+      .subscription-status {
+        flex-direction: column;
+      }
+      
+      .status-actions {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .free-plan-info {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .free-plan-status {
+        flex-direction: column;
+        margin-bottom: 1rem;
+      }
+      
+      .plan-features {
+        justify-content: center;
+        margin-bottom: 1.5rem;
+      }
+      
+      .premium-feature-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .premium-feature-banner i {
         margin-right: 0;
         margin-bottom: 1rem;
       }
       
-      .nav-menu li a {
-        padding: 1rem 0;
-        justify-content: center;
+      .feature-text {
+        margin-bottom: 1rem;
       }
-      
-      .nav-menu li a i {
-        margin-right: 0;
-        font-size: 1.4rem;
-      }
-      
-      .nav-menu li a span {
-        display: none;
-      }
-      
-      .main-content {
-        margin-left: 80px;
-        padding: 1rem;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .main-content {
-        margin-left: 0;
-        padding: 1rem;
-      }
-      
-      .sidebar {
-        transform: translateX(-100%);
-      }
-      
-      .sidebar.active {
-        transform: translateX(0);
-      }
-      
-      .top-bar {
-        position: relative;
-      }
-      
-      .menu-toggle {
-        display: block;
-        position: absolute;
-        left: 1rem;
-        top: 1rem;
-        background: none;
-        border: none;
-        color: var(--light-color);
-        font-size: 1.5rem;
-        cursor: pointer;
-        z-index: 20;
-      }
-    }
-    
-    /* アニメーション効果 */
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(110, 142, 251, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(110, 142, 251, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(110, 142, 251, 0); }
-    }
-    
-    .btn-primary {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    
-    body {
-      background-size: 200% 200%;
-      animation: gradient 15s ease infinite;
-    }
-    
-    /* 装飾的な要素 */
-    .bg-shapes {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      z-index: -1;
-      opacity: 0.5;
-    }
-    
-    .shape {
-      position: absolute;
-      border-radius: 50%;
-      background: var(--primary-gradient);
-      filter: blur(60px);
-    }
-    
-    .shape-1 {
-      top: 10%;
-      left: 10%;
-      width: 300px;
-      height: 300px;
-      opacity: 0.3;
-    }
-    
-    .shape-2 {
-      bottom: 10%;
-      right: 10%;
-      width: 200px;
-      height: 200px;
-      opacity: 0.2;
-    }
-    
-    .shape-3 {
-      top: 50%;
-      left: 50%;
-      width: 400px;
-      height: 400px;
-      opacity: 0.1;
-      transform: translate(-50%, -50%);
     }
   </style>
-</head>
-<body>
-  <!-- 背景装飾 -->
-  <div class="bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
-
-  <div class="dashboard-container">
-    <!-- サイドバー -->
-    <div class="sidebar">
-      <div class="logo">
-        <h2>ROYAL LINK</h2>
-      </div>
-      <div class="user-info">
-        <div class="avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div class="user-name">
-          <%= user.username %>
-        </div>
-      </div>
-      <nav class="nav-menu">
-        <ul>
-          <li class="active"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>ダッシュボード</span></a></li>
-          <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
-          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
-        </ul>
-      </nav>
-    </div>
-
-    <!-- メインコンテンツ -->
-    <div class="main-content">
-      <header class="top-bar">
-        <h1>ダッシュボード</h1>
-      </header>
-
-      <!-- アラート -->
-      <% if (error) { %>
-        <div class="alert alert-error">
-          <i class="fas fa-exclamation-circle"></i> <%= error %>
-        </div>
-      <% } %>
-      
-      <% if (success) { %>
-        <div class="alert alert-success">
-          <i class="fas fa-check-circle"></i> <%= success %>
-        </div>
-      <% } %>
-
-      <!-- URL作成セクション -->
-      <section class="url-shorten-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-link"></i> 新しいURLを短縮</h2>
-          </div>
-          <div class="card-body">
-            <form action="/shorten" method="POST" class="url-form">
-              <div class="form-group">
-                <label for="originalUrl">元のURL:</label>
-                <input 
-                  type="text" 
-                  id="originalUrl" 
-                  name="originalUrl" 
-                  placeholder="https://example.com/long-url-to-shorten" 
-                  required
-                >
-              </div>
-              
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="domainId">ドメイン:</label>
-                  <select id="domainId" name="domainId">
-                    <option value="default">デフォルトドメイン (<%= appDomain || 'king-rule.site' %>)</option>
-                    <% domains.forEach(domain => { %>
-                      <option value="<%= domain._id %>" <%= domain.verified ? '' : 'disabled' %>>
-                        <%= domain.domainName %> <%= domain.verified ? '' : '(未検証)' %>
-                      </option>
-                    <% }); %>
-                  </select>
-                </div>
-                
-                <div class="form-group" id="customSlugGroup">
-                  <label for="customSlug">カスタムスラグ (オプション):</label>
-                  <input 
-                    type="text" 
-                    id="customSlug" 
-                    name="customSlug" 
-                    placeholder="my-custom-url"
-                    pattern="[a-zA-Z0-9-_]+"
-                    title="英数字、ハイフン、アンダースコアのみ使用できます"
-                  >
-                </div>
-              </div>
-              
-              <button type="submit" class="btn-primary">短縮する</button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <!-- ドメイン一覧 -->
-      <section class="domains-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-globe"></i> マイドメイン</h2>
-            <a href="/domains/add" class="btn-small">
-              <i class="fas fa-plus"></i> 新規追加
-            </a>
-          </div>
-          <div class="card-body">
-            <% if (domains.length > 0) { %>
-              <div class="domain-list">
-                <div class="table-responsive">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>ドメイン名</th>
-                        <th>ステータス</th>
-                        <th>作成日</th>
-                        <th>アクション</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% domains.forEach(domain => { %>
-                        <tr>
-                          <td><%= domain.domainName %></td>
-                          <td>
-                            <% if (domain.verified) { %>
-                              <span class="badge badge-success">検証済み</span>
-                            <% } else { %>
-                              <span class="badge badge-warning">未検証</span>
-                            <% } %>
-                          </td>
-                          <td><%= new Date(domain.createdAt).toLocaleDateString() %></td>
-                          <td>
-                            <div class="action-buttons">
-                              <% if (!domain.verified) { %>
-                                <a href="/domains/verify/<%= domain._id %>" class="btn-small btn-info" title="検証">
-                                  <i class="fas fa-check"></i>
-                                </a>
-                              <% } %>
-                              <a href="/domains/delete/<%= domain._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？関連するすべての短縮URLがデフォルトドメインに移行されます。');">
-                                <i class="fas fa-trash"></i>
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            <% } else { %>
-              <p class="no-data">登録されたドメインがありません。「新規追加」ボタンからドメインを追加してください。</p>
-            <% } %>
-          </div>
-        </div>
-      </section>
-
-      <!-- URL一覧とアクセス統計 -->
-      <section class="urls-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-chart-line"></i> 短縮URL一覧</h2>
-          </div>
-          <div class="card-body">
-            <% if (urls.length > 0) { %>
-              <!-- タブ -->
-              <div class="tabs">
-                <button class="tab-btn active" data-tab="list">リスト表示</button>
-                <button class="tab-btn" data-tab="analytics">アクセス統計</button>
-              </div>
-              
-              <!-- URL一覧タブ -->
-              <div id="list-tab" class="tab-panel active">
-                <div class="url-list">
-                  <div class="table-responsive">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>元URL</th>
-                          <th>短縮URL</th>
-                          <th>クリック数</th>
-                          <th>作成日</th>
-                          <th>アクション</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <% urls.forEach(url => { %>
-                          <tr>
-                            <td class="original-url" title="<%= url.originalUrl %>">
-                              <%= url.originalUrl.length > 30 ? url.originalUrl.substring(0, 30) + '...' : url.originalUrl %>
-                            </td>
-                            <td>
-                              <% if (url.domainId) { %>
-                                <% const domain = domains.find(d => d._id.toString() === url.domainId.toString()); %>
-                                <% if (domain) { %>
-                                  <a href="https://<%= domain.domainName %>/<%= url.customSlug %>" target="_blank">
-                                    <%= domain.domainName %>/<%= url.customSlug %>
-                                  </a>
-                                <% } else { %>
-                                  <a href="https://<%= appDomain %>/<%= url.customSlug %>" target="_blank">
-                                    <%= appDomain %>/<%= url.customSlug %>
+</body>
+</html>

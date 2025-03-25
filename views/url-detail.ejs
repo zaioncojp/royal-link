@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<%- include('partials/header') %>
+<body>
+  <!-- Background effects -->
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <%- include('partials/sidebar') %>
+
+    <!-- Main content -->
+    <div class="main-content">
+      <header class="top-bar">
+        <h1>URL詳細情報</h1>
+        <a href="/dashboard" class="btn-small">
+          <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
+        </a>
+      </header>
+
+      <% if (error) { %>
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-circle"></i> <%= error %>
+        </div>
+      <% } %>
+
+      <% if (success) { %>
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle"></i> <%= success %>
+        </div>
+      <% } %>
+
+      <!-- URL詳細情報 -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-link"></i> 短縮URL情報</h2>
+        </div>
+        <div class="card-body">
+          <div class="detail-info">
+            <div class="info-group">
+              <label>元のURL:</label>
+              <div class="info-value">
+                <a href="<%= url.originalUrl %>" target="_blank"><%= url.originalUrl %></a>
+              </div>
+            </div>
+            
+            <div class="info-group">
+              <label>短縮URL:</label>
+              <div class="info-value">
+                <% 
+                  let shortUrl = '';
+                  if (url.customSlug) {
+                    shortUrl = domain ? `https://${domain.domainName}/${url.customSlug}` : `https://${appDomain}/${url.customSlug}`;
+                  } else {
+                    shortUrl = `https://${appDomain}/s/${url.shortCode}`;
+                  }
+                %>
+                <a href="<%= shortUrl %>" target="_blank"><%= shortUrl %></a>
+                <button class="copy-btn" data-url="<%= shortUrl %>">
+                  <i class="fas fa-copy"></i> コピー
+                </button>
+              </div>
+            </div>
+            
+            <div class="info-group">
+              <label>総クリック数:</label>
+              <div class="info-value"><%= url.clicks || 0 %> 回</div>
+            </div>
+            
+            <div class="info-group">
+              <label>作成日時:</label>
+              <div class="info-value"><%= new Date(url.createdAt).toLocaleString() %></div>
+            </div>
+            
+            <% if (url.customSlug) { %>
+              <div class="info-group">
+                <label>カスタムスラグ:</label>
+                <div class="info-value"><%= url.customSlug %></div>
+              </div>
+            <% } %>
+            
+            <div class="info-group">
+              <label>ショートコード:</label>
+              <div class="info-value"><%= url.shortCode %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 時間帯別アクセス -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-clock"></i> 時間帯別アクセス</h2>
+        </div>
+        <div class="card-body">
+          <div class="time-chart-container">
+            <% for (let i = 0; i < hourlyData.length; i++) { %>
+              <div class="chart-bar">
+                <div class="bar" style="height: <%= Math.max(20, (hourlyData[i].count / Math.max(...hourlyData.map(s => s.count || 1)) * 250)) %>px">
+                  <span class="clicks"><%= hourlyData[i].count %></span>
+                </div>
+                <span class="code"><%= hourlyData[i].hour %>時</span>
+              </div>
+            <% } %>
+          </div>
+          <div class="chart-description">
+            <p>このグラフは各時間帯（24時間制）のアクセス数を表しています。最も人気のある時間帯は 
+              <% 
+                let maxHour = 0;
+                let maxCount = 0;
+                for (let i = 0; i < hourlyData.length; i++) {
+                  if (hourlyData[i].count > maxCount) {
+                    maxCount = hourlyData[i].count;
+                    maxHour = i;
+                  }
+                }
+              %>
+              <strong><%= maxHour %>時</strong> (<%= maxCount %>回のアクセス) です。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 日別アクセス -->
+      <% if (dailyChartData && dailyChartData.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-calendar-alt"></i> 日別アクセス統計</h2>
+          </div>
+          <div class="card-body">
+            <div class="daily-chart-container">
+              <% for (let i = 0; i < dailyChartData.length; i++) { %>
+                <div class="chart-bar">
+                  <div class="bar" style="height: <%= Math.max(20, (dailyChartData[i].count / Math.max(...dailyChartData.map(s => s.count || 1)) * 250)) %>px">
+                    <span class="clicks"><%= dailyChartData[i].count %></span>
+                  </div>
+                  <span class="code"><%= new Date(dailyChartData[i].date).toLocaleDateString() %></span>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- アクセスログ -->
+      <% if (url.accessLogs && url.accessLogs.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-list"></i> 最近のアクセスログ</h2>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>日時</th>
+                    <th>IPアドレス</th>
+                    <th>ブラウザ</th>
+                    <th>リファラー</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% 
+                    // 最新の10件だけ表示
+                    const recentLogs = [...url.accessLogs].reverse().slice(0, 10);
+                  %>
+                  <% for (let i = 0; i < recentLogs.length; i++) { %>
+                    <tr>
+                      <td><%= new Date(recentLogs[i].timestamp).toLocaleString() %></td>
+                      <td><%= recentLogs[i].ipAddress %></td>
+                      <td><%= recentLogs[i].userAgent ? (recentLogs[i].userAgent.length > 50 ? recentLogs[i].userAgent.substring(0, 50) + '...' : recentLogs[i].userAgent) : 'unknown' %></td>
+                      <td><%= recentLogs[i].referer || 'direct' %></td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+            <div class="log-summary">
+              <p>全 <%= url.accessLogs.length %> 件のアクセスログのうち最新の10件を表示しています。</p>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    // コピーボタン機能
+    document.addEventListener('DOMContentLoaded', function() {
+      const copyButtons = document.querySelectorAll('.copy-btn');
+      
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const url = this.getAttribute('data-url');
+          
+          navigator.clipboard.writeText(url)
+            .then(() => {
+              // コピー成功時の表示
+              const originalHTML = this.innerHTML;
+              this.innerHTML = '<i class="fas fa-check"></i> コピーしました';
+              this.classList.add('copied');
+              
+              setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.classList.remove('copied');
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('コピーに失敗しました:', err);
+            });
+        });
+      });
+    });
+  </script>
+
+  <style>
+    .detail-info {
+      background: rgba(26, 32, 44, 0.4);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    
+    .info-group {
+      margin-bottom: 15px;
+      display: flex;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+    }
+    
+    .info-group label {
+      font-weight: 600;
+      width: 150px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .info-value {
+      flex: 1;
+    }
+    
+    .copy-btn {
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      margin-left: 10px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.3s;
+    }
+    
+    .copy-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .copy-btn.copied {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+    }
+    
+    .time-chart-container,
+    .daily-chart-container {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      height: 300px;
+      margin: 20px 0;
+      padding-bottom: 30px;
+      overflow-x: auto;
+    }
+    
+    .chart-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 30px;
+      margin: 0 2px;
+    }
+    
+    .bar {
+      width: 20px;
+      background: linear-gradient(180deg, #6e8efb, #a777e3);
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      box-shadow: 0 0 10px rgba(110, 142, 251, 0.3);
+      min-height: 1px;
+      transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .clicks {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 32, 44, 0.8);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    
+    .code {
+      margin-top: 8px;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .chart-description {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .daily-chart-container .chart-bar {
+      min-width: 50px;
+    }
+    
+    .daily-chart-container .code {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      height: 50px;
+      font-size: 0.65rem;
+    }
+    
+    .log-summary {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .table-responsive {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    table th, 
+    table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    table th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+    }
+    
+    table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    @media (max-width: 768px) {
+      .info-group {
+        flex-direction: column;
+      }
+      
+      .info-group label {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+      
+      table th, 
+      table td {
+        padding: 8px 5px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</body>
+</html>
