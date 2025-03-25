@@ -235,7 +235,7 @@ urlSchema.index({ customSlug: 1 }, { sparse: true });
 domainSchema.index({ domainName: 1 });
 
 // 各モデルを一度だけコンパイル
-const User = mongoose.model('User', userSchema);
+//const User = mongoose.model('User', userSchema);
 const Domain = mongoose.model('Domain', domainSchema);
 const Url = mongoose.model('Url', urlSchema);
 const Subscription = mongoose.model('Subscription', subscriptionSchema);
