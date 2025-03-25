@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 
 
 
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
 // MongoDB接続
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
 mongoose.connect(MONGO_URI)
@@ -85,7 +85,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
   hasPremium: { type: Boolean, default: false } // プレミアムプランかどうかのフラグ
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
 });
 
 sessionStore.on('error', function(error) {
@@ -185,7 +185,7 @@ const Domain = mongoose.model('Domain', domainSchema);
 const Url = mongoose.model('Url', urlSchema);
 const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
 // PayPalヘルパーの読み込み
 const paypalHelper = require('./utils/paypalHelper');
 
@@ -246,7 +246,7 @@ const isPremiumUser = async (req, res, next) => {
 
 
 
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
 // サブスクリプション情報を取得するミドルウェア
 const getSubscriptionInfo = async (req, res, next) => {
   if (!req.session || !req.session.userId) {
@@ -576,7 +576,7 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
 
 
 
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
 // URL短縮エンドポイント - 無料プランのユーザーも制限付きで利用可能
 app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, async (req, res) => {
   try {
