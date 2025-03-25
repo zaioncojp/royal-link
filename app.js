@@ -34,7 +34,6 @@ app.use(express.static('public', {
 }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
 // 独自ドメイン対応のためのミドルウェア
 app.use((req, res, next) => {
   // ドメイン情報をリクエストとレスポンスに追加
@@ -157,6 +156,7 @@ const subscriptionSchema = new mongoose.Schema({
     }
   }]
 });
+
 // モデルのインデックス設定
 urlSchema.index({ shortCode: 1 });
 urlSchema.index({ customSlug: 1 });
@@ -169,6 +169,7 @@ const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
 // PayPalヘルパーの読み込み
 const paypalHelper = require('./utils/paypalHelper');
+
 
 // 認証チェックミドルウェア
 const isAuthenticated = (req, res, next) => {
@@ -377,6 +378,7 @@ app.get('/', (req, res) => {
     res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
   }
 });
+
 // ログインページ
 app.get('/login', (req, res) => {
   try {
@@ -437,198 +439,92 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// 新規登録ページ
-app.get('/register', (req, res) => {
+// ダッシュボード - サブスクリプション状態を確認
+app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionInfo, async (req, res) => {
   try {
-    res.render('register', { error: null });
-  } catch (err) {
-    console.error('登録ページエラー:', err);
-    res.status(500).send('内部サーバーエラーが発生しました');
-  }
-});
-
-// 新規登録処理
-app.post('/register', async (req, res) => {
-  console.log('登録リクエスト受信:', req.body);
-  
-  // 入力データが空でないか確認
-  if (!req.body.username || !req.body.email || !req.body.password || !req.body.confirmPassword) {
-    console.log('入力データが不足しています');
-    return res.render('register', { error: '全ての項目を入力してください' });
-  }
-  
-  const { username, email, password, confirmPassword } = req.body;
-  
-  if (password !== confirmPassword) {
-    console.log('パスワードが一致しません');
-    return res.render('register', { error: 'パスワードが一致しません' });
-  }
-  
-  try {
-    console.log('ユーザー検索開始');
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
+    const userId = req.session.userId;
     
-    if (existingUser) {
-      console.log('既存ユーザー検出:', existingUser.username);
-      return res.render('register', { error: 'ユーザー名またはメールアドレスが既に使用されています' });
+    // 並行してクエリを実行
+    const startTime = Date.now();
+    let user, urls, domains;
+    
+    try {
+      [user, urls, domains] = await Promise.all([
+        User.findById(userId).lean(),
+        Url.find({ userId }).sort({ createdAt: -1 }).lean(),
+        Domain.find({ userId }).lean()
+      ]);
+    } catch (dbErr) {
+      console.error('データベース取得エラー:', dbErr);
+      // エラー発生時は空の配列を設定
+      urls = [];
+      domains = [];
     }
     
-    console.log('パスワードハッシュ化開始');
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    console.log(`データ取得完了: ${Date.now() - startTime}ms`);
     
-    console.log('新規ユーザー作成開始');
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      hasPremium: false // デフォルトは無料ユーザー
-    });
-    
-    console.log('ユーザーをデータベースに保存');
-    await newUser.save();
-    
-    console.log('セッション設定');
-    req.session.userId = newUser._id;
-    
-    // セッションの保存を確認
-    req.session.save((err) => {
-      if (err) {
-        console.error('セッション保存エラー:', err);
-        // 一時的な対策としてクエリパラメータでIDを渡す
-        return res.redirect(`/dashboard-temp?userId=${newUser._id}`);
-      }
-      
-      console.log('セッション保存成功:', req.session);
-      console.log('ダッシュボードへリダイレクト');
-      return res.redirect('/dashboard');
-    });
-  } catch (err) {
-    console.error('登録エラー詳細:', err);
-    res.render('register', { error: '登録中にエラーが発生しました: ' + err.message });
-  }
-});
-
-// URL短縮処理 - プレミアムユーザー限定
-app.post('/shorten', isAuthenticated, async (req, res) => {
-  const { originalUrl, domainId, customSlug } = req.body;
-  
-  if (!originalUrl) {
-    return res.redirect('/dashboard?error=URLを入力してください');
-  }
-  
-  if (!validUrl.isUri(originalUrl)) {
-    return res.redirect('/dashboard?error=有効なURLを入力してください');
-  }
-  
-  try {
-    // ユーザーの種類を確認（プレミアムかどうか）
-    const user = await User.findById(req.session.userId);
-    
-    // プレミアムでないなら、サブスクリプションページにリダイレクト
-    if (!user.hasPremium) {
-      return res.redirect('/subscription/plans?error=URLを短縮するにはプレミアムプランへの登録が必要です');
+    if (!user) {
+      req.session.destroy();
+      return res.redirect('/login');
     }
     
-    let url = null;
-    let shortUrl = '';
+    console.log(`取得したURL数: ${urls ? urls.length : 0}`);
+    console.log(`取得したドメイン数: ${domains ? domains.length : 0}`);
     
-    if (domainId && domainId !== 'default') {
-      const domain = await Domain.findOne({ 
-        _id: domainId, 
-        userId: req.session.userId,
-        verified: true
-      });
-      
-      if (!domain) {
-        return res.redirect('/dashboard?error=無効なドメインが選択されました');
+    // nullチェックを追加
+    urls = urls || [];
+    domains = domains || [];
+    
+    // 時間帯別統計を計算
+    const timeStats = {};
+    for (const url of urls) {
+      if (url.accessLogs && url.accessLogs.length > 0) {
+        url.accessLogs.forEach(log => {
+          const hour = new Date(log.timestamp).getHours();
+          if (!timeStats[hour]) {
+            timeStats[hour] = 0;
+          }
+          timeStats[hour]++;
+        });
       }
-      
-      if (customSlug) {
-        const existingUrl = await Url.findOne({ 
-          domainId: domain._id, 
-          customSlug 
-        });
-        
-        if (existingUrl) {
-          return res.redirect('/dashboard?error=そのカスタムスラグは既に使用されています');
-        }
-        
-        url = new Url({
-          userId: req.session.userId,
-          originalUrl,
-          shortCode: shortid.generate(),
-          domainId: domain._id,
-          customSlug
-        });
-        
-        shortUrl = `https://${domain.domainName}/${customSlug}`;
-      } else {
-        const randomSlug = shortid.generate();
-        url = new Url({
-          userId: req.session.userId,
-          originalUrl,
-          shortCode: shortid.generate(),
-          domainId: domain._id,
-          customSlug: randomSlug
-        });
-        
-        shortUrl = `https://${domain.domainName}/${randomSlug}`;
-      }
-    } else {
-      // デフォルトドメイン(king-rule.site)を使用
-      const shortCode = shortid.generate();
-      url = new Url({
-        userId: req.session.userId,
-        originalUrl,
-        shortCode
-      });
-      
-      shortUrl = `https://${DOMAIN}/s/${shortCode}`;
     }
     
-    console.log('新しいURL作成:', url);
-    await url.save();
-    console.log('短縮URL:', shortUrl);
+    // 時間帯順にソート
+    const hourlyStats = Array.from({length: 24}, (_, i) => ({
+      hour: i,
+      count: timeStats[i] || 0
+    }));
     
-    // 成功メッセージに短縮URLを含める
-    return res.redirect(`/dashboard?success=短縮URLが作成されました: ${shortUrl}`);
+    // プレミアム状態をビューに渡す
+    const isPremium = user.hasPremium;
     
-  } catch (err) {
-    console.error(err);
-    return res.redirect('/dashboard?error=URL短縮中にエラーが発生しました: ' + err.message);
-  }
-});
-
-// ログアウト処理
-app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/login');
-});
-
-// サーバーを起動
-const server = app.listen(PORT, HOST, () => {
-  console.log(`ROYAL LINK サーバーが起動しました - ポート: ${PORT}, ホスト: ${HOST}`);
-  console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
-});
-
-// エラーハンドリング
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`ポート ${PORT} は既に使用されています`);
-  } else {
-    console.error('サーバー起動エラー:', err);
-  }
-});
-
-// グレースフルシャットダウン
-process.on('SIGTERM', () => {
-  console.log('SIGTERM シグナルを受信しました。サーバーをシャットダウンします。');
-  server.close(() => {
-    console.log('サーバーが正常にシャットダウンされました。');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB接続を閉じました。');
-      process.exit(0);
+    res.render('dashboard', {
+      urls,
+      domains,
+      user,
+      hourlyStats,
+      isPremium, // プレミアムステータスをビューに渡す
+      error: req.query.error || null,
+      success: req.query.success || null,
+      appDomain: req.appDomain || 'king-rule.site',
+      subscription: res.locals.subscription
     });
-  });
+  } catch (err) {
+    console.error('ダッシュボード表示エラー:', err);
+    return res.render('dashboard', {
+      urls: [],
+      domains: [],
+      user: { username: '不明なユーザー' },
+      hourlyStats: Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })),
+      isPremium: false,
+      error: 'データの取得中にエラーが発生しました: ' + err.message,
+      success: null,
+      appDomain: req.appDomain || 'king-rule.site',
+      subscription: null
+    });
+  }
 });
+
+// モジュールをエクスポート
+module.exports = app;
