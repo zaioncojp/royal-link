@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 });
 
 
-=======
+
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
 // MongoDB接続
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
@@ -58,7 +58,7 @@ const sessionStore = MongoStore.create({
   ttl: 60 * 60 * 24, // 1日
   autoRemove: 'native',
   touchAfter: 24 * 3600 // 24時間ごとに更新
-=======
+
 });
 
 sessionStore.on('error', function(error) {
@@ -109,7 +109,7 @@ app.use(session({
 // モデルのインポート
 // ここでモデルを一度だけインポートすることで重複定義を防ぐ
 const { User, Domain, Url, Subscription } = require('./models');
-=======
+
 // URLモデル - アクセスログフィールドを追加
 const urlSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -245,7 +245,7 @@ const isPremiumUser = async (req, res, next) => {
 };
 
 
-=======
+
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
 // サブスクリプション情報を取得するミドルウェア
 const getSubscriptionInfo = async (req, res, next) => {
@@ -575,7 +575,7 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
 
 
 
-=======
+
 >>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
 // URL短縮エンドポイント - 無料プランのユーザーも制限付きで利用可能
 app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, async (req, res) => {
@@ -653,7 +653,6 @@ app.get('/s/:code', async (req, res) => {
     
     if (!url) {
       return res.status(404).render('404', { message: '短縮URLが見つかりません' });
-=======
     }
     
     // 新しいURL作成
@@ -1250,16 +1249,16 @@ async function handleSubscriptionCancelled(subscriptionId) {
 
     console.error('短縮URLリダイレクトエラー:', err);
     res.status(500).render('404', { message: 'エラーが発生しました' });
-=======
+
     console.error('サブスクリプションキャンセル処理エラー:', err);
->>>>>>> e878cf00ddf2021e2465d475d2af0476e7b85c93
+ e878cf00ddf2021e2465d475d2af0476e7b85c93
   }
 }
 
 
 // URL詳細ページ、ドメイン追加、認証関連、サブスクリプション関連のルート定義...
 // (長いため、省略しています。これらは元のapp.jsファイルと同じ内容です)
-=======
+
 // サブスクリプションが一時停止された時の処理
 async function handleSubscriptionSuspended(subscriptionId) {
   try {
