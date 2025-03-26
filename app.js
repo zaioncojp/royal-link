@@ -176,9 +176,9 @@ const subscriptionSchema = new mongoose.Schema({
 });
 
 // モデルのインデックス設定
-urlSchema.index({ shortCode: 1 });
-urlSchema.index({ customSlug: 1 });
-domainSchema.index({ domainName: 1 });
+//urlSchema.index({ shortCode: 1 });
+//urlSchema.index({ customSlug: 1 });
+//domainSchema.index({ domainName: 1 });
 
 //const User = mongoose.model('User', userSchema);
 //const Domain = mongoose.model('Domain', domainSchema);
