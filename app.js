@@ -366,7 +366,8 @@ app.post('/login', async (req, res) => {
 });
 
 // ダッシュボード - サブスクリプション状態を確認
-app.get('/dashboard', isAuthenticate
+
+  
   // ダッシュボード - サブスクリプション状態を確認
 app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionInfo, async (req, res) => {
   try {
