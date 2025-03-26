@@ -1,4 +1,4 @@
-// app.js - ROYAL LINKのメインアプリケーション - モデル定義を修正
+// app.js - ROYAL LINKのメインアプリケーション
 const express = require('express');
 const mongoose = require('mongoose');
 const shortid = require('shortid');
@@ -34,6 +34,7 @@ app.use(express.static('public', {
 }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
 // 独自ドメイン対応のためのミドルウェア
 app.use((req, res, next) => {
   // ドメイン情報をリクエストとレスポンスに追加
@@ -43,9 +44,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-
- 
 // MongoDB接続
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://royaluser:sausu2108@cluster0.7oi5f.mongodb.net/royallink?retryWrites=true&w=majority&appName=Cluster0';
 mongoose.connect(MONGO_URI)
@@ -58,40 +56,11 @@ const sessionStore = MongoStore.create({
   ttl: 60 * 60 * 24, // 1日
   autoRemove: 'native',
   touchAfter: 24 * 3600 // 24時間ごとに更新
-
 });
 
 sessionStore.on('error', function(error) {
   console.error('セッションストアエラー:', error);
 });
-
-// セッション設定
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'royal-link-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    maxAge: 1000 * 60 * 60 * 24, // 24時間
-    secure: process.env.NODE_ENV === 'production', // 本番環境ではHTTPSを強制
-    sameSite: 'lax'
-  },
-  store: sessionStore
-}));
-
-// ユーザーモデル
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  hasPremium: { type: Boolean, default: false } // プレミアムプランかどうかのフラグ
- 
-});
-
-sessionStore.on('error', function(error) {
-  console.error('セッションストアエラー:', error);
-});
-
 
 // セッション設定
 app.use(session({
@@ -107,85 +76,8 @@ app.use(session({
 }));
 
 // モデルのインポート
-// ここでモデルを一度だけインポートすることで重複定義を防ぐ
 const { User, Domain, Url, Subscription } = require('./models');
 
-// URLモデル - アクセスログフィールドを追加
-const urlSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  originalUrl: { type: String, required: true },
-  shortCode: { type: String, required: true },
-  domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'Domain', default: null },
-  customSlug: { type: String, default: null },
-  clicks: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now },
-  // アクセスログを追加
-  accessLogs: [{
-    timestamp: { type: Date, default: Date.now },
-    ipAddress: { type: String },
-    userAgent: { type: String },
-    referer: { type: String }
-  }]
-});
-
-// サブスクリプションモデル
-const subscriptionSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  paypalSubscriptionId: {
-    type: String,
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['active', 'suspended', 'cancelled', 'expired'],
-    default: 'active'
-  },
-  plan: {
-    type: String,
-    default: 'premium'
-  },
-  startDate: {
-    type: Date,
-    default: Date.now
-  },
-  endDate: {
-    type: Date
-  },
-  lastPaymentDate: {
-    type: Date,
-    default: Date.now
-  },
-  nextPaymentDate: {
-    type: Date,
-    required: true
-  },
-  paymentHistory: [{
-    paymentId: String,
-    amount: Number,
-    currency: String,
-    status: String,
-    date: {
-      type: Date,
-      default: Date.now
-    }
-  }]
-});
-
-// モデルのインデックス設定
-//urlSchema.index({ shortCode: 1 });
-//urlSchema.index({ customSlug: 1 });
-//domainSchema.index({ domainName: 1 });
-
-//const User = mongoose.model('User', userSchema);
-//const Domain = mongoose.model('Domain', domainSchema);
-//onst Url = mongoose.model('Url', urlSchema);
-//const Subscription = mongoose.model('Subscription', subscriptionSchema);
-
- 
 // PayPalヘルパーの読み込み
 const paypalHelper = require('./utils/paypalHelper');
 
@@ -244,9 +136,6 @@ const isPremiumUser = async (req, res, next) => {
   }
 };
 
-
-
- 
 // サブスクリプション情報を取得するミドルウェア
 const getSubscriptionInfo = async (req, res, next) => {
   if (!req.session || !req.session.userId) {
@@ -477,6 +366,8 @@ app.post('/login', async (req, res) => {
 });
 
 // ダッシュボード - サブスクリプション状態を確認
+app.get('/dashboard', isAuthenticate
+  // ダッシュボード - サブスクリプション状態を確認
 app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionInfo, async (req, res) => {
   try {
     console.log('ダッシュボード表示リクエスト開始:', new Date().toISOString());
@@ -573,10 +464,6 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
   }
 });
 
-
-
-
- 
 // URL短縮エンドポイント - 無料プランのユーザーも制限付きで利用可能
 app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, async (req, res) => {
   try {
@@ -630,29 +517,6 @@ app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, as
       // プレミアムユーザーの場合、カスタム設定を適用
       urlData.customSlug = customSlug || null;
       urlData.domainId = domainToUse;
-
-    }
-    
-    // 新しいURL作成
-    const newUrl = new Url(urlData);
-    await newUrl.save();
-    
-    res.redirect('/dashboard?success=URLを短縮しました');
-  } catch (err) {
-    console.error('URL短縮エラー:', err);
-    res.redirect('/dashboard?error=URLの短縮中にエラーが発生しました');
-  }
-});
-
-// 短縮URLリダイレクト - sパス
-app.get('/s/:code', async (req, res) => {
-  try {
-    const shortCode = req.params.code;
-    
-    const url = await Url.findOne({ shortCode });
-    
-    if (!url) {
-      return res.status(404).render('404', { message: '短縮URLが見つかりません' });
     }
     
     // 新しいURL作成
@@ -845,6 +709,7 @@ app.get('/domains/verify/:id', isAuthenticated, freePlanMiddleware.checkCustomDo
     const domainId = req.params.id;
     
     // ドメインを取得し、そのドメインが現在のユーザーに属しているか確認
+    // ドメインを取得し、そのドメインが現在のユーザーに属しているか確認
     const domain = await Domain.findOne({ _id: domainId, userId: req.session.userId });
     
     if (!domain) {
@@ -1005,6 +870,7 @@ app.get('/subscription/plans', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?error=サブスクリプション情報の取得中にエラーが発生しました');
   }
 });
+
 // サブスクリプション成功処理
 app.get('/subscription/success', isAuthenticated, async (req, res) => {
   try {
@@ -1110,6 +976,7 @@ app.get('/subscription/manage', isAuthenticated, async (req, res) => {
     res.redirect('/dashboard?error=サブスクリプション情報の取得中にエラーが発生しました: ' + err.message);
   }
 });
+
 // サブスクリプションキャンセル処理
 app.post('/subscription/cancel', isAuthenticated, async (req, res) => {
   try {
@@ -1180,6 +1047,7 @@ app.post('/paypal-webhook', express.raw({type: 'application/json'}), async (req,
         // サブスクリプションがキャンセルされた時の処理
         console.log('サブスクリプションキャンセルイベント:', resourceId);
         await handleSubscriptionCancelled(resourceId);
+        await handleSubscriptionCancelled(resourceId);
         break;
         
       case 'BILLING.SUBSCRIPTION.SUSPENDED':
@@ -1227,37 +1095,11 @@ async function handleSubscriptionCancelled(subscriptionId) {
         await User.findByIdAndUpdate(subscription.userId, { hasPremium: false });
         console.log('ユーザーのプレミアム状態を更新しました(false):', subscription.userId);
       }
-
     }
-    
-    // クリック数を増やす
-    url.clicks++;
-    
-    // アクセスログを追加
-    url.accessLogs.push({
-      timestamp: new Date(),
-      ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
-      userAgent: req.headers['user-agent'] || 'unknown',
-      referer: req.headers.referer || 'direct'
-    });
-    
-    await url.save();
-    
-    // 元のURLにリダイレクト
-    res.redirect(url.originalUrl);
   } catch (err) {
-
-    console.error('短縮URLリダイレクトエラー:', err);
-    res.status(500).render('404', { message: 'エラーが発生しました' });
-
     console.error('サブスクリプションキャンセル処理エラー:', err);
- 
   }
 }
-
-
-// URL詳細ページ、ドメイン追加、認証関連、サブスクリプション関連のルート定義...
-// (長いため、省略しています。これらは元のapp.jsファイルと同じ内容です)
 
 // サブスクリプションが一時停止された時の処理
 async function handleSubscriptionSuspended(subscriptionId) {
@@ -1351,7 +1193,6 @@ async function handlePaymentFailed(subscriptionId) {
     console.error('支払い失敗処理エラー:', err);
   }
 }
- 
 
 // 404ページ（最後に配置）
 app.use((req, res) => {
