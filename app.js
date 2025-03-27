@@ -841,38 +841,64 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// ログアウト - 修正版
-// ログアウト - 修正版
 
-// ログアウト - 修正版
+// ログアウト - 完全な修正版
 app.get('/logout', (req, res) => {
-  // セッションをクリア
-  req.session = null;
-  
-  // クッキーをクリア
-  res.clearCookie('connect.sid', { path: '/' });
-  
-  // リダイレクト前に少し待機（念のため）
-  setTimeout(() => {
-    // メインページにリダイレクト
-    res.redirect('/');
-  }, 100);
-});
-app.get('/logout', (req, res) => {
-  // セッションが存在する場合は破棄
+  // セッションを破棄
   if (req.session) {
+    // セッションを無効化
+    req.session.userId = null;
     req.session.destroy((err) => {
+      // エラーがあってもクッキーを削除してリダイレクト
       if (err) {
         console.error('ログアウトエラー:', err);
       }
-      // いずれの場合もクッキーをクリアしてログインページにリダイレクト
-      res.clearCookie('connect.sid');
-      return res.redirect('/login');
+      
+      // クッキーを確実に削除
+      res.clearCookie('connect.sid', { 
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      
+      // 直接HTMLを返す（リダイレクトが機能しない場合のバックアップ）
+      res.send(`
+        <html>
+        <head>
+          <title>ログアウト - ROYAL LINK</title>
+          <script>
+            // クッキーを削除
+            document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            // リダイレクト
+            window.location.href = "/";
+          </script>
+        </head>
+        <body>
+          <p>ログアウトしています...</p>
+        </body>
+        </html>
+      `);
     });
   } else {
-    // セッションがない場合はクッキーを削除してログインページにリダイレクト
-    res.clearCookie('connect.sid');
-    return res.redirect('/login');
+    // セッションがない場合はクッキーを削除して直接HTMLを返す
+    res.clearCookie('connect.sid', { path: '/' });
+    res.send(`
+      <html>
+      <head>
+        <title>ログアウト - ROYAL LINK</title>
+        <script>
+          // クッキーを削除
+          document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          // リダイレクト
+          window.location.href = "/";
+        </script>
+      </head>
+      <body>
+        <p>ログアウトしています...</p>
+      </body>
+      </html>
+    `);
   }
 });
 
