@@ -715,14 +715,7 @@ app.post('/domains/add', isAuthenticated, freePlanMiddleware.checkCustomDomainPe
     res.redirect('/domains/add?error=ドメインの追加中にエラーが発生しました');
   }
 });
-
 // ドメイン検証ページ - プレミアムユーザーのみ
-app.get('/domains/verify/:id', isAuthenticated, freePlanMiddleware.checkCustomDomainPermission, async (req, res) => {
-  try {
-    const domainId = req.params.id;
-    
-    // ドメインを取得し、そのドメインが現在のユーザーに属しているか
-    // ドメイン検証ページ - プレミアムユーザーのみ
 app.get('/domains/verify/:id', isAuthenticated, freePlanMiddleware.checkCustomDomainPermission, async (req, res) => {
   try {
     const domainId = req.params.id;
