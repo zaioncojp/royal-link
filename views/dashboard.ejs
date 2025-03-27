@@ -1,1123 +1,2531 @@
 <!DOCTYPE html>
 <html lang="ja">
-<%- include('partials/header') %>
-<body>
-  <!-- Background effects -->
-  <div class="bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
-
-  <!-- モバイルメニュートグルボタン -->
-  <button id="mobile-menu-toggle" class="mobile-menu-toggle">
-    <i class="fas fa-bars"></i>
-  </button>
-
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <h2>ROYAL LINK</h2>
-        </div>
-        <button class="close-sidebar" id="close-sidebar">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="user-info">
-        <div class="avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div class="user-name">
-          <%= user.username %>
-        </div>
-      </div>
-      <nav class="nav-menu">
-        <ul>
-          <li class="active"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>ダッシュボード</span></a></li>
-          <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
-          <li><a href="/subscription/plans"><i class="fas fa-crown"></i> <span>プレミアムプラン</span></a></li>
-          <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
-        </ul>
-      </nav>
-    </div>
-
-    <!-- Main content -->
-    <div class="main-content">
-      <header class="top-bar">
-        <h1>ダッシュボード</h1>
-        <a href="/dashboard" class="refresh-btn">
-          <i class="fas fa-sync-alt"></i> <span class="btn-text">更新</span>
-        </a>
-      </header>
-
-      <% if (error) { %>
-        <div class="alert alert-error">
-          <i class="fas fa-exclamation-circle"></i> <%= error %>
-        </div>
-      <% } %>
-
-      <% if (success) { %>
-        <div class="alert alert-success">
-          <i class="fas fa-check-circle"></i> <%= success %>
-        </div>
-      <% } %>
-
-      <!-- Subscription Status Check -->
-      <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
-        <div class="subscription-banner">
-          <div class="subscription-message">
-            <i class="fas fa-crown"></i>
-            <div class="message-content">
-              <h3>プレミアム機能を利用するにはサブスクリプションが必要です</h3>
-              <p>URL短縮、独自ドメイン、詳細な統計情報などの機能を使用するには、プレミアムプランにアップグレードしてください。</p>
-            </div>
-          </div>
-          <a href="/subscription/plans" class="btn-premium">
-            <i class="fas fa-arrow-right"></i> プランを見る
-          </a>
-        </div>
-        
-        <!-- 無料プラン情報表示 -->
-        <div class="free-plan-info">
-          <div class="free-plan-status">
-            <i class="fas fa-info-circle"></i>
-            <div class="free-plan-details">
-              <h3>無料プラン</h3>
-              <div class="link-count">
-                <% 
-                  // URLの数をカウント
-                  const urlCount = urls ? urls.length : 0;
-                  const progressPercent = Math.min(100, (urlCount / 3) * 100);
-                %>
-                <div class="link-progress">
-                  <div class="progress-bar">
-                    <div class="progress-fill" style="width: <%= progressPercent %>%;"></div>
-                  </div>
-                  <div class="progress-text">
-                    <span><%= urlCount %> / 3</span> 短縮リンク
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="plan-features">
-            <div class="feature <%= urlCount < 3 ? 'available' : 'unavailable' %>">
-              <i class="fas fa-check-circle"></i> 基本URL短縮 (king-rule.site)
-            </div>
-            <div class="feature unavailable">
-              <i class="fas fa-times-circle"></i> カスタムドメイン
-            </div>
-            <div class="feature unavailable">
-              <i class="fas fa-times-circle"></i> アクセス統計
-            </div>
-            <div class="feature unavailable">
-              <i class="fas fa-times-circle"></i> カスタムスラグ
-            </div>
-          </div>
-          <a href="/subscription/plans" class="btn-upgrade">
-            <i class="fas fa-crown"></i> プレミアムにアップグレード
-          </a>
-        </div>
-      <% } %>
-
-      <!-- URL shortening form -->
-      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
-        <!-- プレミアムユーザー用のフォーム -->
-        <%- include('partials/url-form') %>
-      <% } else { %>
-        <!-- 無料プラン用のフォーム -->
-        <section class="url-shorten-section">
-          <div class="card">
-            <div class="card-header">
-              <h2><i class="fas fa-link"></i> 新しいURLを短縮</h2>
-              <span class="free-plan-badge">無料プラン</span>
-            </div>
-            <div class="card-body">
-              <% if (urls && urls.length >= 3) { %>
-                <div class="limit-reached">
-                  <i class="fas fa-exclamation-circle"></i>
-                  <p>無料プランでは最大3個までの短縮リンクしか作成できません。</p>
-                  <a href="/subscription/plans" class="btn-premium-small">
-                    プレミアムにアップグレード
-                  </a>
-                </div>
-              <% } else { %>
-                <form action="/shorten" method="POST" class="url-form">
-                  <div class="form-group modern-input-group">
-                    <div class="input-icon-wrapper">
-                      <i class="fas fa-globe input-icon"></i>
-                      <input 
-                        type="text" 
-                        id="originalUrl" 
-                        name="originalUrl" 
-                        placeholder="https://example.com/長いURLをここに入力" 
-                        class="modern-input"
-                        required
-                      >
-                      <div class="input-focus-effect"></div>
-                    </div>
-                  </div>
-                  
-                  <input type="hidden" name="domainId" value="default">
-                  
-                  <div class="upgrade-message">
-                    <p>カスタムスラグやカスタムドメインを使用するには <a href="/subscription/plans">プレミアムプラン</a> にアップグレードしてください。</p>
-                  </div>
-                  
-                  <button type="submit" class="btn-shorten">
-                    <span class="btn-text">短縮する</span>
-                    <i class="fas fa-arrow-right btn-icon"></i>
-                  </button>
-                </form>
-              <% } %>
-            </div>
-          </div>
-        </section>
-      <% } %>
-
-      <!-- URLs list -->
-      <section class="urls-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-chart-line"></i> 短縮URL一覧</h2>
-          </div>
-          <div class="card-body">
-            <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
-              <% if (urls && urls.length > 0) { %>
-                <!-- 無料プラン用の簡易リスト表示 -->
-                <div class="url-list">
-                  <div class="url-cards">
-                    <% for (let i = 0; i < urls.length; i++) { %>
-                      <div class="url-card">
-                        <div class="url-card-content">
-                          <div class="original-url" title="<%= urls[i].originalUrl %>">
-                            <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
-                          </div>
-                          <div class="short-url">
-                            <% 
-                              const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
-                              let shortUrl = '';
-                              if (urls[i].customSlug) {
-                                shortUrl = `https://${domain}/${urls[i].customSlug}`;
-                              } else {
-                                shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
-                              }
-                            %>
-                            <a href="<%= shortUrl %>" target="_blank">
-                              <%= shortUrl %>
-                            </a>
-                            <button class="copy-btn" data-url="<%= shortUrl %>">
-                              <i class="fas fa-copy"></i>
-                            </button>
-                          </div>
-                          <div class="url-stats">
-                            <div class="stat">
-                              <i class="fas fa-mouse-pointer"></i> <%= urls[i].clicks || 0 %> クリック
-                            </div>
-                            <div class="stat">
-                              <i class="fas fa-calendar-alt"></i> <%= new Date(urls[i].createdAt).toLocaleDateString() %>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="url-card-actions">
-                          <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
-                            <i class="fas fa-trash"></i>
-                          </a>
-                        </div>
-                      </div>
-                    <% } %>
-                  </div>
-                </div>
-                <div class="premium-feature-banner">
-                  <i class="fas fa-chart-bar"></i>
-                  <div class="feature-text">
-                    <h3>アクセス統計機能</h3>
-                    <p>プレミアムプランにアップグレードして、時間帯別・日別のアクセス統計を確認できます。</p>
-                  </div>
-                  <a href="/subscription/plans" class="btn-premium-small">アップグレード</a>
-                </div>
-              <% } else { %>
-                <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
-              <% } %>
-            <% } else if (urls && urls.length > 0) { %>
-              <!-- プレミアムユーザー用の統計付きリスト表示 -->
-              <div class="tabs">
-                <button class="tab-btn active" data-tab="list">リスト表示</button>
-                <button class="tab-btn" data-tab="analytics">アクセス統計</button>
-              </div>
-              
-              <!-- URL一覧タブ -->
-              <div id="list-tab" class="tab-panel active">
-                <div class="url-list">
-                  <div class="url-cards">
-                    <% for (let i = 0; i < urls.length; i++) { %>
-                      <div class="url-card">
-                        <div class="url-card-content">
-                          <div class="original-url" title="<%= urls[i].originalUrl %>">
-                            <%= urls[i].originalUrl.length > 30 ? urls[i].originalUrl.substring(0, 30) + '...' : urls[i].originalUrl %>
-                          </div>
-                          <div class="short-url">
-                            <% 
-                              const domain = typeof appDomain !== 'undefined' ? appDomain : 'king-rule.site';
-                              let shortUrl = '';
-                              if (urls[i].customSlug) {
-                                shortUrl = `https://${domain}/${urls[i].customSlug}`;
-                              } else {
-                                shortUrl = `https://${domain}/s/${urls[i].shortCode}`;
-                              }
-                            %>
-                            <a href="<%= shortUrl %>" target="_blank">
-                              <%= shortUrl %>
-                            </a>
-                            <button class="copy-btn" data-url="<%= shortUrl %>">
-                              <i class="fas fa-copy"></i>
-                            </button>
-                          </div>
-                          <div class="url-stats">
-                            <div class="stat">
-                              <i class="fas fa-mouse-pointer"></i> <%= urls[i].clicks || 0 %> クリック
-                            </div>
-                            <div class="stat">
-                              <i class="fas fa-calendar-alt"></i> <%= new Date(urls[i].createdAt).toLocaleDateString() %>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="url-card-actions">
-                          <a href="/urls/detail/<%= urls[i]._id %>" class="btn-small btn-info" title="詳細">
-                            <i class="fas fa-chart-bar"></i>
-                          </a>
-                          <a href="/urls/delete/<%= urls[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このURLを削除してもよろしいですか？');">
-                            <i class="fas fa-trash"></i>
-                          </a>
-                        </div>
-                      </div>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- アクセス統計タブ -->
-              <div id="analytics-tab" class="tab-panel">
-                <div class="analytics-chart">
-                  <h3>クリック数の推移</h3>
-                  <div class="chart-container">
-                    <% 
-                      // クリック数の多い順にソート
-                      const sortedUrls = [...urls].sort((a, b) => (b.clicks || 0) - (a.clicks || 0)).slice(0, 10);
-                      const maxClicks = Math.max(...sortedUrls.map(url => url.clicks || 0), 1);
-                    %>
-                    
-                    <div class="chart-scrollable">
-                      <% for (let i = 0; i < sortedUrls.length; i++) { %>
-                        <div class="chart-bar">
-                          <div class="bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
-                            <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
-                          </div>
-                          <span class="code"><%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %></span>
-                        </div>
-                      <% } %>
-                    </div>
-                  </div>
-                  
-                  <!-- 時間帯別アクセスグラフを追加 -->
-                  <div class="analytics-chart">
-                    <h3>時間帯別アクセス</h3>
-                    <div class="time-chart-container">
-                      <div class="chart-scrollable">
-                        <% for (let i = 0; i < hourlyStats.length; i++) { %>
-                          <div class="chart-bar">
-                            <div class="bar" style="height: <%= Math.max(20, (hourlyStats[i].count / Math.max(...hourlyStats.map(s => s.count || 1)) * 250)) %>px">
-                              <span class="clicks"><%= hourlyStats[i].count %></span>
-                            </div>
-                            <span class="code"><%= hourlyStats[i].hour %>時</span>
-                          </div>
-                        <% } %>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            <% } else { %>
-              <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
-            <% } %>
-          </div>
-        </div>
-      </section>
-
-      <!-- Domains list -->
-      <section class="domains-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-globe"></i> ドメイン一覧</h2>
-            <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
-              <a href="/domains/add" class="btn-small">
-                <i class="fas fa-plus"></i> ドメイン追加
-              </a>
-            <% } %>
-          </div>
-          <div class="card-body">
-            <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
-              <div class="premium-required">
-                <i class="fas fa-lock"></i>
-                <h3>プレミアム機能</h3>
-                <p>独自ドメイン機能を利用するには、プレミアムプランへの登録が必要です。</p>
-                <a href="/subscription/plans" class="btn-premium-small">
-                  プレミアムに登録する
-                </a>
-              </div>
-            <% } else if (domains && domains.length > 0) { %>
-              <div class="domains-list">
-                <div class="domain-cards">
-                  <% for (let i = 0; i < domains.length; i++) { %>
-                    <div class="domain-card">
-                      <div class="domain-card-content">
-                        <div class="domain-name"><%= domains[i].domainName %></div>
-                        <div class="domain-status">
-                          <% if (domains[i].verified) { %>
-                            <span class="badge badge-success">検証済み</span>
-                          <% } else { %>
-                            <span class="badge badge-warning">未検証</span>
-                          <% } %>
-                        </div>
-                        <div class="domain-date">
-                          <i class="fas fa-calendar-alt"></i> <%= new Date(domains[i].createdAt).toLocaleDateString() %>
-                        </div>
-                      </div>
-                      <div class="domain-card-actions">
-                        <% if (!domains[i].verified) { %>
-                          <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-primary" title="検証">
-                            <i class="fas fa-check-circle"></i>
-                          </a>
-                        <% } %>
-                        <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？');">
-                          <i class="fas fa-trash"></i>
-                        </a>
-                      </div>
-                    </div>
-                  <% } %>
-                </div>
-              </div>
-            <% } else { %>
-              <p class="no-data">登録されたドメインがありません。「ドメイン追加」ボタンからドメインを追加できます。</p>
-            <% } %>
-          </div>
-        </div>
-      </section>
-
-      <!-- Subscription Status (if active) -->
-      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
-      <section class="subscription-section">
-        <div class="card">
-          <div class="card-header">
-            <h2><i class="fas fa-crown"></i> プレミアムステータス</h2>
-          </div>
-          <div class="card-body">
-            <div class="subscription-status">
-              <div class="status-info">
-                <div class="status-icon">
-                  <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="status-details">
-                  <h3>アクティブ</h3>
-                  <% if (subscription) { %>
-                    <p>次回更新日: <%= new Date(subscription.nextPaymentDate).toLocaleDateString() %></p>
-                    <% if (subscription.plan === 'annual') { %>
-                      <span class="badge badge-premium">年間プラン</span>
-                    <% } else { %>
-                      <span class="badge badge-premium">月額プラン</span>
-                    <% } %>
-                  <% } else { %>
-                    <p>プレミアム機能が有効です</p>
-                  <% } %>
-                </div>
-              </div>
-              <div class="status-actions">
-                <a href="/subscription/manage" class="btn-secondary">
-                  <i class="fas fa-cog"></i> 管理
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <% } %>
-    </div>
-  </div>
-
-  <script>
-    // モバイルメニュー操作のJavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-      const closeSidebar = document.getElementById('close-sidebar');
-      const sidebar = document.getElementById('sidebar');
-      const body = document.body;
-      
-      // モバイルメニューを開く
-      mobileMenuToggle.addEventListener('click', function() {
-        sidebar.classList.add('active');
-        body.classList.add('sidebar-open');
-      });
-      
-      // モバイルメニューを閉じる
-      closeSidebar.addEventListener('click', function() {
-        sidebar.classList.remove('active');
-        body.classList.remove('sidebar-open');
-      });
-      
-      // 画面の外側をクリックしたときにもメニューを閉じる
-      document.addEventListener('click', function(event) {
-        if (body.classList.contains('sidebar-open') && 
-            !sidebar.contains(event.target) && 
-            event.target !== mobileMenuToggle) {
-          sidebar.classList.remove('active');
-          body.classList.remove('sidebar-open');
-        }
-      });
-      
-      // タブ切り替え機能
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const tabId = this.getAttribute('data-tab');
-          
-          // 全てのタブボタンからアクティブクラスを削除
-          tabBtns.forEach(btn => btn.classList.remove('active'));
-          // 全てのタブパネルを非表示に
-          document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
-          
-          // クリックされたタブボタンをアクティブに
-          this.classList.add('active');
-          // 対応するタブパネルを表示
-          document.getElementById(`${tabId}-tab`).classList.add('active');
-        });
-      });
-      
-      // コピーボタン機能を追加
-      const copyButtons = document.querySelectorAll('.copy-btn');
-      
-      copyButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          const url = this.getAttribute('data-url');
-          
-          navigator.clipboard.writeText(url)
-            .then(() => {
-              // コピー成功時の表示
-              const originalHTML = this.innerHTML;
-              this.innerHTML = '<i class="fas fa-check"></i>';
-              this.classList.add('copied');
-              
-              setTimeout(() => {
-                this.innerHTML = originalHTML;
-                this.classList.remove('copied');
-              }, 2000);
-            })
-            .catch(err => {
-              console.error('コピーに失敗しました:', err);
-            });
-        });
-      });
-    });
-  </script>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ダッシュボード - ROYAL LINK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* スマホ最適化用のスタイル */
-    
-    /* モバイルメニュートグル */
-    .mobile-menu-toggle {
-      display: none;
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      background: rgba(26, 32, 44, 0.8);
-      color: var(--light-color);
-      border: none;
-      border-radius: 50%;
-      width: 45px;
-      height: 45px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      z-index: 1000;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s;
+    :root {
+      --primary-color: #7161ef;
+      --primary-light: #9d8df2;
+      --secondary-color: #6558f5;
+      --accent-color: #ff6e6e;
+      --dark-color: #0e101a;
+      --dark-secondary: #161927;
+      --light-color: #ffffff;
+      --text-color: #e6e9f4;
+      --text-secondary: #b8bfd0;
+      --success-color: #2ecc71;
+      --warning-color: #f39c12;
+      --error-color: #e74c3c;
+      --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      --gradient-accent: linear-gradient(135deg, var(--accent-color), #ff9f7f);
+      --card-bg: #1a1f36;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --border-radius: 12px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .mobile-menu-toggle:hover {
-      background: var(--primary-gradient);
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    body {
+      background-color: var(--dark-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Background elements */
+    .bg-design {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+    }
+    
+    .bg-circle-1 {
+      width: 50vw;
+      height: 50vw;
+      background: var(--primary-color);
+      top: -10vw;
+      left: -10vw;
+    }
+    
+    .bg-circle-2 {
+      width: 40vw;
+      height: 40vw;
+      background: var(--accent-color);
+      bottom: -10vw;
+      right: -10vw;
+    }
+    
+    .bg-circle-3 {
+      width: 30vw;
+      height: 30vw;
+      background: var(--secondary-color);
+      top: 40%;
+      left: 60%;
+    }
+    
+    /* Layout */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--dark-secondary);
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .sidebar-header {
+      padding: 30px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--gradient-primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--light-color);
+      box-shadow: 0 4px 10px rgba(113, 97, 239, 0.3);
+    }
+    
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     
     .close-sidebar {
       display: none;
       background: none;
       border: none;
-      color: var(--light-color);
+      color: var(--text-secondary);
       font-size: 1.5rem;
       cursor: pointer;
+      transition: var(--transition);
     }
     
-    .sidebar-header {
+    .close-sidebar:hover {
+      color: var(--light-color);
+      transform: rotate(90deg);
+    }
+    
+    .user-profile {
+      padding: 0 25px 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 20px;
+    }
+    
+    .profile-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--border-radius);
+      padding: 15px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      width: 100%;
+      gap: 15px;
     }
     
-    /* カード表示用のスタイル */
-    .url-cards, .domain-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1rem;
-    }
-    
-    .url-card, .domain-card {
-      background: rgba(26, 32, 44, 0.4);
-      border-radius: 12px;
-      overflow: hidden;
-      padding: 1rem;
+    .profile-avatar {
+      width: 45px;
+      height: 45px;
+      background: var(--gradient-accent);
+      border-radius: 50%;
       display: flex;
-      justify-content: space-between;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--light-color);
+      box-shadow: 0 4px 10px rgba(255, 110, 110, 0.3);
     }
     
-    .url-card:hover, .domain-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-      background: rgba(26, 32, 44, 0.6);
+    .profile-info h3 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 2px;
     }
     
-    .url-card-content, .domain-card-content {
+    .profile-info p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .nav-menu {
       flex: 1;
+      overflow-y: auto;
+      padding: 10px 15px 30px;
     }
     
-    .url-card-actions, .domain-card-actions {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-left: 1rem;
-    }
-    
-    .original-url {
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      word-break: break-all;
-    }
-    
-    .short-url {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      overflow-x: auto;
-      max-width: 100%;
-      white-space: nowrap;
-      padding-bottom: 0.25rem;
-    }
-    
-    .short-url a {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 0.5rem;
-    }
-    
-    .url-stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-    
-    .stat {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      margin-right: 1rem;
-    }
-    
-    .stat i {
-      margin-right: 0.25rem;
-    }
-    
-    .domain-name {
-      font-weight: 500;
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .domain-status {
-      margin-bottom: 0.5rem;
-    }
-    
-    .domain-date {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-    
-    /* チャートスクロール対応 */
-    .chart-scrollable {
-      display: flex;
-      overflow-x: auto;
-      padding-bottom: 1rem;
-      -webkit-overflow-scrolling: touch;
-      width: 100%;
-    }
-    
-    /* モダンなボタンスタイル */
-    .btn-shorten {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-      color: white;
-      border: none;
-      padding: 1.2rem;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 8px 25px rgba(110, 142, 251, 0.3);
+    .menu-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin: 15px 10px 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
     
-    .btn-shorten:before {
+    .menu-list {
+      list-style: none;
+    }
+    
+    .menu-item {
+      margin-bottom: 5px;
+    }
+    
+    .menu-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      border-radius: 8px;
+      transition: var(--transition);
+      position: relative;
+      font-weight: 500;
+    }
+    
+    .menu-link i {
+      font-size: 1.1rem;
+      margin-right: 15px;
+      transition: var(--transition);
+    }
+    
+    .menu-link:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-color);
+    }
+    
+    .menu-link:hover i {
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link {
+      background: rgba(113, 97, 239, 0.1);
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link i {
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--gradient-primary);
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .sidebar-footer {
+      padding: 20px 25px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      width: 100%;
+      background: rgba(231, 76, 60, 0.1);
+      color: #e74c3c;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .logout-btn i {
+      margin-right: 12px;
+      font-size: 1.1rem;
+    }
+    
+    .logout-btn:hover {
+      background: rgba(231, 76, 60, 0.2);
+    }
+    
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 30px;
+      max-width: 1600px;
+      margin-right: auto;
+      transition: var(--transition);
+    }
+    
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .top-actions {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .search-form {
+      position: relative;
+    }
+    
+    .search-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px 15px 10px 42px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      width: 250px;
+      transition: var(--transition);
+    }
+    
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: rgba(113, 97, 239, 0.5);
+      background: rgba(255, 255, 255, 0.07);
+      width: 280px;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+    
+    .action-btn i {
+      font-size: 1.1rem;
+    }
+    
+    .action-btn.has-notification::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+    }
+    
+    /* Dashboard stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card::before {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
-      width: 100%;
+      left: 0;
+      width: 5px;
       height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-      );
-      transition: all 0.5s ease;
+      background: var(--gradient-primary);
+      opacity: 0.8;
     }
     
-    .btn-shorten:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(110, 142, 251, 0.4);
+    .stat-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 3rem;
+      opacity: 0.1;
+      color: var(--primary-light);
     }
     
-    .btn-shorten:hover:before {
-      left: 100%;
+    .stat-title {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      font-weight: 500;
     }
     
-    .btn-shorten:active {
-      transform: translateY(2px);
-      box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 5px;
     }
     
-    .btn-text {
-      margin-right: 10px;
-      z-index: 2;
-      position: relative;
-    }
-    
-    .btn-icon {
-      display: inline-block;
-      transition: all 0.3s ease;
-      z-index: 2;
-      position: relative;
-    }
-    
-    .btn-shorten:hover .btn-icon {
-      transform: translateX(5px);
-    }
-    
-    /* コピーボタンの改良 */
-    .copy-btn {
-      background: none;
-      border: none;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.5rem;
-      margin-left: 0.25rem;
-      border-radius: 4px;
-      transition: all 0.3s;
-      display: inline-flex;
+    .stat-info {
+      display: flex;
       align-items: center;
-      justify-content: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
     }
     
-    .copy-btn:hover {
-      background: rgba(110, 142, 251, 0.2);
+    .stat-change {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+      font-weight: 500;
     }
     
-    .copy-btn.copied {
+    .stat-change.positive {
       color: var(--success-color);
     }
     
-    /* マテリアルデザイン風のフォーム */
-    .modern-input-group {
-      margin-bottom: 1.5rem;
+    .stat-change.negative {
+      color: var(--error-color);
     }
     
-    .input-icon-wrapper {
+    .stat-change i {
+      font-size: 0.9rem;
+      margin-right: 5px;
+    }
+    
+    /* URL shortener form */
+    .url-shortener {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .section-title i {
+      font-size: 1.3rem;
+      color: var(--primary-light);
+    }
+    
+    .shorten-form {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .form-group {
+      flex: 1;
+      min-width: 250px;
       position: relative;
-      overflow: hidden;
-      border-radius: 12px;
-      transition: all 0.3s ease;
     }
     
-    .input-icon {
-      position: absolute;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 1.2rem;
-      z-index: 2;
-      transition: all 0.3s ease;
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
     
-    .modern-input {
+    .form-input {
       width: 100%;
-      padding: 1.2rem 1rem 1.2rem 3.5rem;
-      background: rgba(255, 255, 255, 0.08);
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      color: var(--light-color);
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      padding: 12px 15px 12px 42px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      font-size: 0.95rem;
+      transition: var(--transition);
     }
     
-    .modern-input::placeholder {
-      color: rgba(255, 255, 255, 0.4);
-      transition: all 0.3s ease;
+    .form-input::placeholder {
+      color: rgba(184, 191, 208, 0.5);
     }
     
-    .modern-input:focus {
+    .form-input:focus {
       outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 8px 25px rgba(110, 142, 251, 0.2);
+      border-color: rgba(113, 97, 239, 0.5);
+      background: rgba(255, 255, 255, 0.05);
     }
     
-    .modern-input:focus::placeholder {
-      opacity: 0.5;
-      transform: translateX(10px);
+    .form-icon {
+      position: absolute;
+      left: 15px;
+      top: 38px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      pointer-events: none;
     }
     
-    .modern-input:focus + .input-focus-effect {
-      transform: scaleX(1);
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23b8bfd0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 12px;
+      padding-right: 40px;
     }
     
-    .input-focus-effect {
+    .shorten-btn {
+      background: var(--gradient-primary);
+      color: var(--light-color);
+      border: none;
+      border-radius: 8px;
+      padding: 0 30px;
+      height: 46px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      align-self: flex-end;
+      margin-top: 24px;
+      box-shadow: 0 4px 10px rgba(113, 97, 239, 0.3);
+    }
+    
+    .shorten-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(113, 97, 239, 0.4);
+    }
+    
+    .shorten-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(113, 97, 239, 0.4);
+    }
+    
+    /* URL list */
+    .url-section {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 25px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .tab-btn {
+      padding: 0 20px 15px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+    
+    .tab-btn:hover {
+      color: var(--text-color);
+    }
+    
+    .tab-btn.active {
+      color: var(--primary-light);
+    }
+    
+    .tab-btn.active::after {
+      content: '';
       position: absolute;
       bottom: 0;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background: var(--gradient-primary);
+      border-radius: 3px 3px 0 0;
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    .url-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    
+    .url-card {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .url-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .url-header {
+      display: flex;
+      margin-bottom: 15px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .url-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .url-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 280px;
+    }
+    
+    .url-original {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 280px;
+    }
+    
+    .url-date {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+    
+    .url-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .url-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .url-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+    
+    .url-btn.delete-btn:hover {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--error-color);
+      border-color: rgba(231, 76, 60, 0.2);
+    }
+    
+    .url-btn.edit-btn:hover {
+      background: rgba(46, 204, 113, 0.1);
+      color: var(--success-color);
+      border-color: rgba(46, 204, 113, 0.2);
+    }
+    
+    .url-body {
+      display: flex;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 15px;
+      align-items: center;
+      position: relative;
+    }
+    
+    .short-url {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--primary-light);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: calc(100% - 40px);
+    }
+    
+    .copy-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .copy-btn:hover {
+      color: var(--primary-light);
+    }
+    
+    .url-stats {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .stat-item i {
+      font-size: 0.9rem;
+      margin-right: 5px;
+    }
+    
+    .stat-item.clicks {
+      color: var(--primary-light);
+      font-weight: 500;
+    }
+    
+    /* Premium banner */
+    .premium-banner {
+      background: linear-gradient(135deg, #2c3154, #191d3a);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(113, 97, 239, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .premium-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
       left: 0;
       width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.3s ease;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%237161ef' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+    
+    .premium-content {
+      position: relative;
       z-index: 1;
     }
     
-    /* スマホ対応のためのメディアクエリ */
-    @media (max-width: 768px) {
-      .dashboard-container {
-        display: block;
+    .premium-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ダッシュボード - ROYAL LINK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #7161ef;
+      --primary-light: #9d8df2;
+      --secondary-color: #6558f5;
+      --accent-color: #ff6e6e;
+      --dark-color: #0e101a;
+      --dark-secondary: #161927;
+      --light-color: #ffffff;
+      --text-color: #e6e9f4;
+      --text-secondary: #b8bfd0;
+      --success-color: #2ecc71;
+      --warning-color: #f39c12;
+      --error-color: #e74c3c;
+      --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      --gradient-accent: linear-gradient(135deg, var(--accent-color), #ff9f7f);
+      --card-bg: #1a1f36;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --border-radius: 12px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    body {
+      background-color: var(--dark-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Background elements */
+    .bg-design {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+    }
+    
+    .bg-circle-1 {
+      width: 50vw;
+      height: 50vw;
+      background: var(--primary-color);
+      top: -10vw;
+      left: -10vw;
+    }
+    
+    .bg-circle-2 {
+      width: 40vw;
+      height: 40vw;
+      background: var(--accent-color);
+      bottom: -10vw;
+      right: -10vw;
+    }
+    
+    .bg-circle-3 {
+      width: 30vw;
+      height: 30vw;
+      background: var(--secondary-color);
+      top: 40%;
+      left: 60%;
+    }
+    
+    /* Layout */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--dark-secondary);
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .sidebar-header {
+      padding: 30px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--gradient-primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--light-color);
+      box-shadow: 0 4px 10px rgba(113, 97, 239, 0.3);
+    }
+    
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .close-sidebar {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .close-sidebar:hover {
+      color: var(--light-color);
+      transform: rotate(90deg);
+    }
+    
+    .user-profile {
+      padding: 0 25px 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 20px;
+    }
+    
+    .profile-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--border-radius);
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .profile-avatar {
+      width: 45px;
+      height: 45px;
+      background: var(--gradient-accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--light-color);
+      box-shadow: 0 4px 10px rgba(255, 110, 110, 0.3);
+    }
+    
+    .profile-info h3 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    
+    .profile-info p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .nav-menu {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 15px 30px;
+    }
+    
+    .menu-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin: 15px 10px 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .menu-list {
+      list-style: none;
+    }
+    
+    .menu-item {
+      margin-bottom: 5px;
+    }
+    
+    .menu-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      border-radius: 8px;
+      transition: var(--transition);
+      position: relative;
+      font-weight: 500;
+    }
+    
+    .menu-link i {
+      font-size: 1.1rem;
+      margin-right: 15px;
+      transition: var(--transition);
+    }
+    
+    .menu-link:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-color);
+    }
+    
+    .menu-link:hover i {
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link {
+      background: rgba(113, 97, 239, 0.1);
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link i {
+      color: var(--primary-light);
+    }
+    
+    .menu-item.active .menu-link::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--gradient-primary);
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .sidebar-footer {
+      padding: 20px 25px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      width: 100%;
+      background: rgba(231, 76, 60, 0.1);
+      color: #e74c3c;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .logout-btn i {
+      margin-right: 12px;
+      font-size: 1.1rem;
+    }
+    
+    .logout-btn:hover {
+      background: rgba(231, 76, 60, 0.2);
+    }
+    
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 30px;
+      max-width: 1600px;
+      margin-right: auto;
+      transition: var(--transition);
+    }
+    
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .top-actions {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .search-form {
+      position: relative;
+    }
+    
+    .search-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px 15px 10px 42px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      width: 250px;
+      transition: var(--transition);
+    }
+    
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: rgba(113, 97, 239, 0.5);
+      background: rgba(255, 255, 255, 0.07);
+      width: 280px;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+    
+    .action-btn i {
+      font-size: 1.1rem;
+    }
+    
+    .action-btn.has-notification::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent-color);
+      border-radius: 50%;
+    }
+    
+    /* Dashboard stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: var(--gradient-primary);
+      opacity: 0.8;
+    }
+    
+    .stat-icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 3rem;
+      opacity: 0.1;
+      color: var(--primary-light);
+    }
+    
+    .stat-title {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .stat-info {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .stat-change {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+      font-weight: 500;
+    }
+    
+    .stat-change.positive {
+      color: var(--success-color);
+    }
+    
+    .stat-change.negative {
+      color: var(--error-color);
+    }
+    
+    .stat-change i {
+      font-size: 0.9rem;
+      margin-right: 5px;
+    }
+    
+    /* URL shortener form */
+    .url-shortener {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .section-title i {
+      font-size: 1.3rem;
+      color: var(--primary-light);
+    }
+    
+    .shorten-form {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .form-group {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 15px 12px 42px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      font-size: 0.95rem;
+      transition: var(--transition);
+    }
+    
+    .form-input::placeholder {
+      color: rgba(184, 191, 208, 0.5);
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: rgba(113, 97, 239, 0.5);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .form-icon {
+      position: absolute;
+      left: 15px;
+      top: 38px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23b8bfd0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 12px;
+      padding-right: 40px;
+    }
+    
+    .shorten-btn {
+      background: var(--gradient-primary);
+      color: var(--light-color);
+      border: none;
+      border-radius: 8px;
+      padding: 0 30px;
+      height: 46px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      align-self: flex-end;
+      margin-top: 24px;
+      box-shadow: 0 4px 10px rgba(113, 97, 239, 0.3);
+    }
+    
+    .shorten-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(113, 97, 239, 0.4);
+    }
+    
+    .shorten-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(113, 97, 239, 0.4);
+    }
+    
+    /* URL list */
+    .url-section {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 25px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .tab-btn {
+      padding: 0 20px 15px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+    
+    .tab-btn:hover {
+      color: var(--text-color);
+    }
+    
+    .tab-btn.active {
+      color: var(--primary-light);
+    }
+    
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background: var(--gradient-primary);
+      border-radius: 3px 3px 0 0;
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+    }
+    
+    .url-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    
+    .url-card {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .url-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .url-header {
+      display: flex;
+      margin-bottom: 15px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .url-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .url-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 280px;
+    }
+    
+    .url-original {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 280px;
+    }
+    
+    .url-date {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+    
+    .url-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .url-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .url-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+    
+    .url-btn.delete-btn:hover {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--error-color);
+      border-color: rgba(231, 76, 60, 0.2);
+    }
+    
+    .url-btn.edit-btn:hover {
+      background: rgba(46, 204, 113, 0.1);
+      color: var(--success-color);
+      border-color: rgba(46, 204, 113, 0.2);
+    }
+    
+    .url-body {
+      display: flex;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 15px;
+      align-items: center;
+      position: relative;
+    }
+    
+    .short-url {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--primary-light);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: calc(100% - 40px);
+    }
+    
+    .copy-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .copy-btn:hover {
+      color: var(--primary-light);
+    }
+    
+    .url-stats {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .stat-item i {
+      font-size: 0.9rem;
+      margin-right: 5px;
+    }
+    
+    .stat-item.clicks {
+      color: var(--primary-light);
+      font-weight: 500;
+    }
+    
+    /* Premium banner */
+    .premium-banner {
+      background: linear-gradient(135deg, #2c3154, #191d3a);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(113, 97, 239, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .premium-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%237161ef' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+    
+    .premium-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .premium-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .premium-title i {
+      color: #ffc107;
+      font-size: 1.5rem;
+    }
+    
+    .premium-description {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      max-width: 580px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    
+    .premium-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--gradient-accent);
+      color: var(--light-color);
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 4px 10px rgba(255, 110, 110, 0.3);
+    }
+    
+    .premium-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 110, 110, 0.4);
+    }
+    
+    .premium-image {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+      margin-top: 40px;
+    }
+    
+    .feature-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      background: rgba(113, 97, 239, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--primary-light);
+      margin-bottom: 20px;
+    }
+    
+    .feature-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .feature-description {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+    
+    .learn-more {
+      color: var(--primary-light);
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: auto;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .learn-more:hover {
+      text-decoration: underline;
+      gap: 8px;
+    }
+    
+    /* Chart styles */
+    .chart-container {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 20px;
+      height: 300px;
+      position: relative;
+    }
+    
+    .chart-actions {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    
+    .chart-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .chart-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 1200px) {
+      .main-content {
+        padding: 20px;
       }
       
+      .stats-grid,
+      .features-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      }
+      
+      .url-list {
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      }
+    }
+    
+    @media (max-width: 992px) {
       .sidebar {
-        position: fixed;
-        left: -100%;
-        width: 85%;
-        max-width: 300px;
-        height: 100vh;
-        z-index: 1000;
-        transition: all 0.3s ease;
+        transform: translateX(-100%);
         box-shadow: none;
       }
       
       .sidebar.active {
-        left: 0;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        transform: translateX(0);
+        box-shadow: var(--shadow-lg);
       }
       
       .close-sidebar {
         display: block;
       }
       
-      .mobile-menu-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
       .main-content {
         margin-left: 0;
-        padding: 1rem;
-        padding-top: 4rem;
       }
       
-      .top-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        padding: 1rem;
-        background: rgba(26, 32, 44, 0.9);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        z-index: 5;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      .url-list {
+        grid-template-columns: 1fr;
       }
-      
-      .top-bar h1 {
-        font-size: 1.5rem;
-        margin-left: 3rem;
-      }
-      
-      .refresh-btn .btn-text {
-        display: none;
-      }
-      
-      .refresh-btn {
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      .card {
-        margin-bottom: 1rem;
-      }
-      
-      .card-header {
-        padding: 1rem;
-      }
-      
-      .card-header h2 {
-        font-size: 1rem;
-      }
-      
-      .card-body {
-        padding: 1rem;
-      }
-      
-      .url-cards, .domain-cards {
+    }
+    
+    @media (max-width: 768px) {
+      .stats-grid {
         grid-template-columns: 1fr;
       }
       
-      .subscription-banner {
+      .premium-banner {
         flex-direction: column;
         text-align: center;
-        padding: 1rem;
+        padding: 25px;
       }
       
-      .subscription-message {
-        flex-direction: column;
-        margin-bottom: 1rem;
+      .premium-content {
+        margin-bottom: 20px;
       }
       
-      .subscription-message i {
-        margin-bottom: 1rem;
-        font-size: 2rem;
-      }
-      
-      .free-plan-info {
-        flex-direction: column;
-        padding: 1rem;
-      }
-      
-      .free-plan-status {
-        flex-direction: column;
-        text-align: center;
-        margin-bottom: 1rem;
-      }
-      
-      .free-plan-status i {
-        margin-bottom: 0.5rem;
-        font-size: 2rem;
-      }
-      
-      .plan-features {
-        flex-direction: column;
-        margin-bottom: 1rem;
-      }
-      
-      .feature {
-        margin-bottom: 0.5rem;
-      }
-      
-      .tabs {
-        overflow-x: auto;
-        white-space: nowrap;
-        padding-bottom: 0.5rem;
-      }
-      
-      .tab-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-      }
-      
-      .premium-feature-banner {
-        flex-direction: column;
-        text-align: center;
-        padding: 1rem;
-      }
-      
-      .premium-feature-banner i {
-        margin-bottom: 0.5rem;
-        font-size: 2rem;
-      }
-      
-      .feature-text {
-        margin-bottom: 1rem;
-      }
-      
-      .subscription-status {
-        flex-direction: column;
-      }
-      
-      .status-info {
-        flex-direction: column;
-        text-align: center;
-        margin-bottom: 1rem;
-      }
-      
-      .status-icon {
-        margin-bottom: 0.5rem;
-      }
-      
-      /* スマホでのタッチ操作を改善 */
-      .btn-small {
-        padding: 0.7rem;
-        min-width: 44px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
+      .premium-title {
         justify-content: center;
       }
       
-      /* フォームの調整 */
-      .input-icon {
-        left: 15px;
+      .premium-description {
+        margin: 0 auto 20px;
       }
       
-      .modern-input {
-        padding-left: 3rem;
-        font-size: 1rem;
-      }
-      
-      /* グラフ表示の調整 */
-      .chart-container {
-        height: auto;
-        padding-bottom: 1rem;
-      }
-      
-      .chart-bar {
-        min-width: 60px;
-      }
-      
-      /* タッチデバイス用の調整 */
-      a, button, .btn-shorten, .btn-small, .copy-btn {
-        -webkit-tap-highlight-color: transparent;
-      }
-      
-      /* iOS用の調整 */
-      .modern-input, select, textarea {
-        font-size: 16px; /* iOSでの自動ズームを防止 */
-      }
-      
-      /* スクロールの改善 */
-      .chart-scrollable::-webkit-scrollbar {
-        height: 6px;
-      }
-      
-      .chart-scrollable::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
-      }
-      
-      .chart-scrollable::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 3px;
-      }
-    }
-    
-    /* さらに小さな画面向けの調整 */
-    @media (max-width: 480px) {
-      .url-card, .domain-card {
+      .shorten-form {
         flex-direction: column;
       }
       
-      .url-card-actions, .domain-card-actions {
-        flex-direction: row;
-        margin-left: 0;
-        margin-top: 1rem;
-        justify-content: flex-end;
+      .shorten-btn {
+        width: 100%;
+        margin-top: 0;
       }
       
-      .card-header {
+      .search-input {
+        width: 100%;
+      }
+      
+      .search-input:focus {
+        width: 100%;
+      }
+      
+      .top-bar {
         flex-direction: column;
         align-items: flex-start;
+        gap: 15px;
       }
       
-      .card-header h2 {
-        margin-bottom: 0.5rem;
+      .top-actions {
+        width: 100%;
       }
       
-      .free-plan-badge {
-        margin-left: 0;
-        margin-top: 0.5rem;
-      }
-      
-      /* ボタンをタップしやすいサイズに */
-      .btn-small, .copy-btn {
-        min-width: 48px;
-        min-height: 48px;
+      .search-form {
+        flex: 1;
       }
     }
     
-    /* 画面の向きが変わった時の対応 */
-    @media (orientation: landscape) and (max-width: 768px) {
-      .sidebar {
-        padding-top: 1rem;
+    /* Mobile menu button */
+    .mobile-menu-btn {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-secondary);
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 90;
+    }
+    
+    .mobile-menu-btn:hover {
+      color: var(--text-color);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    @media (max-width: 992px) {
+      .mobile-menu-btn {
+        display: flex;
       }
       
-      .nav-menu {
-        max-height: 60vh;
-        overflow-y: auto;
+      .top-bar {
+        margin-top: 40px;
       }
     }
     
-    /* タッチデバイス専用の調整 */
-    @media (hover: none) {
-      .url-card:hover, .domain-card:hover {
-        transform: none;
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 95;
+      opacity: 0;
+      visibility: hidden;
+      transition: var(--transition);
+    }
+    
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    /* Animation classes */
+    .fade-in {
+      animation: fadeIn 0.3s ease forwards;
+    }
+    
+    .slide-in {
+      animation: slideIn 0.3s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
       }
-      
-      .btn-shorten:active, .btn-small:active, .copy-btn:active {
-        transform: scale(0.98);
+      to {
+        opacity: 1;
       }
     }
     
-    /* ダークモード対応 */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --light-color: #f1f5f9;
-        --text-muted: #94a3b8;
+    @keyframes slideIn {
+      from {
+        transform: translateX(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
       }
     }
   </style>
+</head>
+<body>
+  <!-- Background design -->
+  <div class="bg-design">
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+  </div>
+  
+  <!-- Mobile menu button -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn">
+    <i class="fas fa-bars"></i>
+  </button>
+  
+  <!-- Overlay -->
+  <div class="overlay" id="overlay"></div>
+  
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-link"></i>
+          </div>
+          <span class="logo-text">ROYAL LINK</span>
+        </div>
+        <button class="close-sidebar" id="closeSidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="user-profile">
+        <div class="profile-card">
+          <div class="profile-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="profile-info">
+            <h3>山田太郎</h3>
+            <p>無料プラン</p>
+          </div>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <div class="menu-label">メインナビゲーション</div>
+        <ul class="menu-list">
+          <li class="menu-item active">
+            <a href="/dashboard" class="menu-link">
+              <i class="fas fa-tachometer-alt"></i>
+              <span>ダッシュボード</span>
+            </a>
+          </li>
+          <li class="menu-item">
+            <a href="/analytics" class="menu-link">
+              <i class="fas fa-chart-bar"></i>
+              <span>アクセス分析</span>
+            </a>
+          </li>
+          <li class="menu-item">
+            <a href="/domains" class="menu-link">
+              <i class="fas fa-globe"></i>
+              <span>ドメイン管理</span>
+            </a>
+          </li>
+        </ul>
+        
+        <div class="menu-label">アカウント設定</div>
+        <ul class="menu-list">
+          <li class="menu-item">
+            <a href="/profile" class="menu-link">
+              <i class="fas fa-user-cog"></i>
+              <span>プロフィール設定</span>
+            </a>
+          </li>
+          <li class="menu-item">
+            <a href="/subscription" class="menu-link">
+              <i class="fas fa-crown"></i>
+              <span>プレミアムプラン</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <button class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>ログアウト</span>
+        </button>
+      </div>
+    </aside>
+    
+    <!-- Main content -->
+    <main class="main-content">
+      <!-- Top bar -->
+      <div class="top-bar">
+        <h1 class="page-title">ダッシュボード</h1>
+        
+        <div class="top-actions">
+          <form class="search-form">
+            <input type="text" class="search-input" placeholder="URLを検索...">
+            <i class="fas fa-search search-icon"></i>
+          </form>
+          
+          <button class="action-btn">
+            <i class="fas fa-bell"></i>
+          </button>
+          
+          <button class="action-btn">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Stats section -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <i class="fas fa-link stat-icon"></i>
+          <div class="stat-title">短縮URL</div>
+          <div class="stat-value">24</div>
+          <div class="stat-info">
+            <span>今月</span>
+            <span class="stat-change positive">
+              <i class="fas fa-arrow-up"></i>
+              12%
+            </span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <i class="fas fa-mouse-pointer stat-icon"></i>
+          <div class="stat-title">総クリック数</div>
+          <div class="stat-value">1,856</div>
+          <div class="stat-info">
+            <span>今月</span>
+            <span class="stat-change positive">
+              <i class="fas fa-arrow-up"></i>
+              8.5%
+            </span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <i class="fas fa-globe stat-icon"></i>
+          <div class="stat-title">カスタムドメイン</div>
+          <div class="stat-value">2</div>
+          <div class="stat-info">
+            <span>検証済み</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <i class="fas fa-chart-line stat-icon"></i>
+          <div class="stat-title">平均クリック率</div>
+          <div class="stat-value">32.5%</div>
+          <div class="stat-info">
+            <span>今月</span>
+            <span class="stat-change negative">
+              <i class="fas fa-arrow-down"></i>
+              2.1%
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Premium banner -->
+      <div class="premium-banner">
+        <div class="premium-content">
+          <h2 class="premium-title">
+            <i class="fas fa-crown"></i>
+            <span>プレミアムプランにアップグレード</span>
+          </h2>
+          <p class="premium-description">
+            無制限のURL短縮、カスタムドメイン、詳細なアクセス分析など、さらに多くの機能を利用できるようになります。
+          </p>
+          <button class="premium-btn">
+            <i class="fas fa-rocket"></i>
+            <span>プレミアムを見る</span>
+          </button>
+        </div>
+        <div class="premium-image">
+          <img src="premium-illustration.png" alt="Premium features" style="max-width: 180px;">
+        </div>
+      </div>
+      
+      <!-- URL shortener -->
+      <div class="url-shortener">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-link"></i>
+            <span>URLを短縮</span>
+          </h2>
+        </div>
+        
+        <form class="shorten-form">
+          <div class="form-group">
+            <label class="form-label">URL</label>
+            <i class="fas fa-globe form-icon"></i>
+            <input type="url" class="form-input" placeholder="https://example.com/long-url" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">カスタムスラグ (オプション)</label>
+            <i class="fas fa-tag form-icon"></i>
+            <input type="text" class="form-input" placeholder="my-brand">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">ドメイン</label>
+            <i class="fas fa-server form-icon"></i>
+            <select class="form-input form-select">
+              <option value="default">king-rule.site (デフォルト)</option>
+              <option value="custom1">mybrand.com</option>
+              <option value="custom2">short.example.org</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="shorten-btn">
+            <i class="fas fa-bolt"></i>
+            <span>URLを短縮</span>
+          </button>
+        </form>
+      </div>
+      
+      <!-- URL list -->
+      <div class="url-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-list"></i>
+            <span>短縮URL一覧</span>
+          </h2>
+        </div>
+        
+        <div class="tabs">
+          <button class="tab-btn active">最近の短縮URL</button>
+          <button class="tab-btn">人気の短縮URL</button>
+        </div>
+        
+        <div class="tab-panel active">
+          <div class="url-list">
+            <!-- URL card -->
+            <div class="url-card fade-in">
+              <div class="url-header">
+                <div class="url-info">
+                  <h3 class="url-title">マーケティングキャンペーン</h3>
+                  <div class="url-original">https://example.com/marketing/campaign/summer-2023/promotion</div>
+                  <div class="url-date">2023/08/15 作成</div>
+                </div>
+                <div class="url-actions">
+                  <button class="url-btn edit-btn" title="編集">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="url-btn delete-btn" title="削除">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="url-body">
+                <div class="short-url">https://king-rule.site/campaign</div>
+                <button class="copy-btn" title="コピー">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+              
+              <div class="url-stats">
+                <div class="stat-item clicks">
+                  <i class="fas fa-mouse-pointer"></i>
+                  <span>256 クリック</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span>今週 +24%</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- URL card -->
+            <div class="url-card fade-in">
+              <div class="url-header">
+                <div class="url-info">
+                  <h3 class="url-title">会社概要ページ</h3>
+                  <div class="url-original">https://mybusiness.example.com/about-us/company/overview</div>
+                  <div class="url-date">2023/08/10 作成</div>
+                </div>
+                <div class="url-actions">
+                  <button class="url-btn edit-btn" title="編集">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="url-btn delete-btn" title="削除">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="url-body">
+                <div class="short-url">https://king-rule.site/about</div>
+                <button class="copy-btn" title="コピー">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+              
+              <div class="url-stats">
+                <div class="stat-item clicks">
+                  <i class="fas fa-mouse-pointer"></i>
+                  <span>128 クリック</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span>今週 +5%</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- URL card -->
+            <div class="url-card fade-in">
+              <div class="url-header">
+                <div class="url-info">
+                  <h3 class="url-title">新製品発表ページ</h3>
+                  <div class="url-original">https://products.example.com/new-releases/2023/summer/product-x</div>
+                  <div class="url-date">2023/08/05 作成</div>
+                </div>
+                <div class="url-actions">
+                  <button class="url-btn edit-btn" title="編集">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="url-btn delete-btn" title="削除">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="url-body">
+                <div class="short-url">https://king-rule.site/product-x</div>
+                <button class="copy-btn" title="コピー">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+              
+              <div class="url-stats">
+                <div class="stat-item clicks">
+                  <i class="fas fa-mouse-pointer"></i>
+                  <span>425 クリック</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span>今週 +42%</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- URL card -->
+            <div class="url-card fade-in">
+              <div class="url-header">
+                <div class="url-info">
+                  <h3 class="url-title">カスタマーサポート</h3>
+                  <div class="url-original">https://support.example.com/customer/portal/help-center</div>
+                  <div class="url-date">2023/08/01 作成</div>
+                </div>
+                <div class="url-actions">
+                  <button class="url-btn edit-btn" title="編集">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="url-btn delete-btn" title="削除">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="url-body">
+                <div class="short-url">https://king-rule.site/help</div>
+                <button class="copy-btn" title="コピー">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+              
+              <div class="url-stats">
+                <div class="stat-item clicks">
+                  <i class="fas fa-mouse-pointer"></i>
+                  <span>89 クリック</span>
+                </div>
+                <div class="stat-item">
+                  <i class="fas fa-chart-line"></i>
+                  <span>今週 -2%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Features section -->
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <h3 class="feature-title">詳細なアクセス分析</h3>
+          <p class="feature-description">
+            あなたの短縮URLのパフォーマンスを追跡し、訪問者の行動を理解するための詳細な分析情報を提供します。
+          </p>
+          <a href="/analytics" class="learn-more">
+            <span>詳しく見る</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-globe"></i>
+          </div>
+          <h3 class="feature-title">カスタムドメイン</h3>
+          <p class="feature-description">
+            自分のドメインを使用して短縮URLを作成し、ブランドの認知度と信頼性を高めます。
+          </p>
+          <a href="/domains" class="learn-more">
+            <span>詳しく見る</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3 class="feature-title">安全なリンク管理</h3>
+          <p class="feature-description">
+            リンク管理の安全性を確保し、いつでもリンクを編集または無効化できます。
+          </p>
+          <a href="/security" class="learn-more">
+            <span>詳しく見る</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    // Mobile menu toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    
+    mobileMenuBtn.addEventListener('click', () => {
+      sidebar.classList.add('active');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+    
+    closeSidebarBtn.addEventListener('click', () => {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+    
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+    
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    
+    tabBtns.forEach((btn, index) => {
+      btn.addEventListener('click', () => {
+        // Remove active class from all buttons and panels
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding panel
+        btn.classList.add('active');
+        tabPanels[index].classList.add('active');
+      });
+    });
+    
+    // Copy URL functionality
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    
+    copyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const url = btn.previousElementSibling.textContent;
+        navigator.clipboard.writeText(url).then(() => {
+          const originalIcon = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check"></i>';
+          
+          setTimeout(() => {
+            btn.innerHTML = originalIcon;
+          }, 2000);
+        }).catch(err => {
+          console.error('Could not copy text: ', err);
+        });
+      });
+    });
+    
+    // Staggered animation for cards
+    document.addEventListener('DOMContentLoaded', () => {
+      const cards = document.querySelectorAll('.url-card, .feature-card, .stat-card');
+      
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.classList.add('fade-in');
+        }, 100 * index);
+      });
+    });
+  </script>
 </body>
 </html>
