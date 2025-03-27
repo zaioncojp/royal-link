@@ -14,7 +14,7 @@
     <ul>
       <li class="active"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>ダッシュボード</span></a></li>
       <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
-      <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
+      <li><a href="/logout" onclick="return handleLogout(event)"><i class="fas fa-sign-out-alt"></i> <span>ログアウト</span></a></li>
     </ul>
   </nav>
 </div>
@@ -129,3 +129,17 @@
     color: var(--primary-light);
   }
 </style>
+
+<script>
+function handleLogout(event) {
+  event.preventDefault();
+  
+  // セッションクッキーを削除
+  document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  
+  // ログアウトURLにリダイレクト
+  window.location.href = "/logout";
+  
+  return false;
+}
+</script>

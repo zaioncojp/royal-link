@@ -77,7 +77,8 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24, // 24時間
     secure: process.env.NODE_ENV === 'production', // 本番環境ではHTTPSを強制
     sameSite: 'lax',
-    httpOnly: true // HTTPOnlyクッキーを設定してXSS攻撃を防止
+    httpOnly: true, // HTTPOnlyクッキーを設定してXSS攻撃を防止
+    path: '/' // パスを明示的に設定
   },
   store: sessionStore
 }));
@@ -841,24 +842,23 @@ app.post('/register', async (req, res) => {
 });
 
 // ログアウト - 修正版
+// ログアウト - 修正版
 app.get('/logout', (req, res) => {
-  // セッションが存在しない場合の対応
-  if (!req.session) {
+  // セッションが存在する場合は破棄
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('ログアウトエラー:', err);
+      }
+      // いずれの場合もクッキーをクリアしてログインページにリダイレクト
+      res.clearCookie('connect.sid');
+      return res.redirect('/login');
+    });
+  } else {
     // セッションがない場合はクッキーを削除してログインページにリダイレクト
     res.clearCookie('connect.sid');
     return res.redirect('/login');
   }
-  
-  // セッションの破棄
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('ログアウトエラー:', err);
-      // エラーがあっても、クライアント側のクッキーをクリアして強制的にログアウト
-      res.clearCookie('connect.sid');
-    }
-    // ログインページにリダイレクト
-    res.redirect('/login');
-  });
 });
 
 // サブスクリプションプラン一覧ページ
