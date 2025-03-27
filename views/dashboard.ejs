@@ -313,13 +313,11 @@
                       <% for (let i = 0; i < sortedUrls.length; i++) { %>
                         <div class="chart-bar">
                           <div class="bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
-                            <span class="clicks"><%= sortedUrls[<div class="bar" style="height: <%= Math.max(20, ((sortedUrls[i].clicks || 0) / maxClicks) * 250) %>px">
-                              <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
-                            </div>
-                            <span class="code"><%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %></span>
+                            <span class="clicks"><%= sortedUrls[i].clicks || 0 %></span>
                           </div>
-                        <% } %>
-                      </div>
+                          <span class="code"><%= sortedUrls[i].customSlug || sortedUrls[i].shortCode %></span>
+                        </div>
+                      <% } %>
                     </div>
                   </div>
                   
@@ -340,384 +338,385 @@
                     </div>
                   </div>
                 </div>
-              <% } else { %>
-                <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
-              <% } %>
-            </div>
+              </div>
+            <% } else { %>
+              <p class="no-data">短縮URLがありません。上のフォームからURLを短縮してください。</p>
+            <% } %>
           </div>
-        </section>
-  
-        <!-- Domains list -->
-        <section class="domains-section">
-          <div class="card">
-            <div class="card-header">
-              <h2><i class="fas fa-globe"></i> ドメイン一覧</h2>
-              <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
-                <a href="/domains/add" class="btn-small">
-                  <i class="fas fa-plus"></i> ドメイン追加
+        </div>
+      </section>
+
+      <!-- Domains list -->
+      <section class="domains-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-globe"></i> ドメイン一覧</h2>
+            <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+              <a href="/domains/add" class="btn-small">
+                <i class="fas fa-plus"></i> ドメイン追加
+              </a>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
+              <div class="premium-required">
+                <i class="fas fa-lock"></i>
+                <h3>プレミアム機能</h3>
+                <p>独自ドメイン機能を利用するには、プレミアムプランへの登録が必要です。</p>
+                <a href="/subscription/plans" class="btn-premium-small">
+                  プレミアムに登録する
                 </a>
-              <% } %>
-            </div>
-            <div class="card-body">
-              <% if (!user.hasPremium && (!subscription || subscription.status !== 'active')) { %>
-                <div class="premium-required">
-                  <i class="fas fa-lock"></i>
-                  <h3>プレミアム機能</h3>
-                  <p>独自ドメイン機能を利用するには、プレミアムプランへの登録が必要です。</p>
-                  <a href="/subscription/plans" class="btn-premium-small">
-                    プレミアムに登録する
-                  </a>
-                </div>
-              <% } else if (domains && domains.length > 0) { %>
-                <div class="domains-list">
-                  <div class="domain-cards">
-                    <% for (let i = 0; i < domains.length; i++) { %>
-                      <div class="domain-card">
-                        <div class="domain-card-content">
-                          <div class="domain-name"><%= domains[i].domainName %></div>
-                          <div class="domain-status">
-                            <% if (domains[i].verified) { %>
-                              <span class="badge badge-success">検証済み</span>
-                            <% } else { %>
-                              <span class="badge badge-warning">未検証</span>
-                            <% } %>
-                          </div>
-                          <div class="domain-date">
-                            <i class="fas fa-calendar-alt"></i> <%= new Date(domains[i].createdAt).toLocaleDateString() %>
-                          </div>
-                        </div>
-                        <div class="domain-card-actions">
-                          <% if (!domains[i].verified) { %>
-                            <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-primary" title="検証">
-                              <i class="fas fa-check-circle"></i>
-                            </a>
+              </div>
+            <% } else if (domains && domains.length > 0) { %>
+              <div class="domains-list">
+                <div class="domain-cards">
+                  <% for (let i = 0; i < domains.length; i++) { %>
+                    <div class="domain-card">
+                      <div class="domain-card-content">
+                        <div class="domain-name"><%= domains[i].domainName %></div>
+                        <div class="domain-status">
+                          <% if (domains[i].verified) { %>
+                            <span class="badge badge-success">検証済み</span>
+                          <% } else { %>
+                            <span class="badge badge-warning">未検証</span>
                           <% } %>
-                          <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？');">
-                            <i class="fas fa-trash"></i>
-                          </a>
+                        </div>
+                        <div class="domain-date">
+                          <i class="fas fa-calendar-alt"></i> <%= new Date(domains[i].createdAt).toLocaleDateString() %>
                         </div>
                       </div>
-                    <% } %>
-                  </div>
+                      <div class="domain-card-actions">
+                        <% if (!domains[i].verified) { %>
+                          <a href="/domains/verify/<%= domains[i]._id %>" class="btn-small btn-primary" title="検証">
+                            <i class="fas fa-check-circle"></i>
+                          </a>
+                        <% } %>
+                        <a href="/domains/delete/<%= domains[i]._id %>" class="btn-small btn-danger" title="削除" onclick="return confirm('このドメインを削除してもよろしいですか？');">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </div>
+                    </div>
+                  <% } %>
                 </div>
-              <% } else { %>
-                <p class="no-data">登録されたドメインがありません。「ドメイン追加」ボタンからドメインを追加できます。</p>
-              <% } %>
-            </div>
+              </div>
+            <% } else { %>
+              <p class="no-data">登録されたドメインがありません。「ドメイン追加」ボタンからドメインを追加できます。</p>
+            <% } %>
           </div>
-        </section>
-  
-        <!-- Subscription Status (if active) -->
-        <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
-        <section class="subscription-section">
-          <div class="card">
-            <div class="card-header">
-              <h2><i class="fas fa-crown"></i> プレミアムステータス</h2>
-            </div>
-            <div class="card-body">
-              <div class="subscription-status">
-                <div class="status-info">
-                  <div class="status-icon">
-                    <i class="fas fa-check-circle"></i>
-                  </div>
-                  <div class="status-details">
-                    <h3>アクティブ</h3>
-                    <% if (subscription) { %>
-                      <p>次回更新日: <%= new Date(subscription.nextPaymentDate).toLocaleDateString() %></p>
-                      <% if (subscription.plan === 'annual') { %>
-                        <span class="badge badge-premium">年間プラン</span>
-                      <% } else { %>
-                        <span class="badge badge-premium">月額プラン</span>
-                      <% } %>
+        </div>
+      </section>
+
+      <!-- Subscription Status (if active) -->
+      <% if (user.hasPremium || (subscription && subscription.status === 'active')) { %>
+      <section class="subscription-section">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fas fa-crown"></i> プレミアムステータス</h2>
+          </div>
+          <div class="card-body">
+            <div class="subscription-status">
+              <div class="status-info">
+                <div class="status-icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="status-details">
+                  <h3>アクティブ</h3>
+                  <% if (subscription) { %>
+                    <p>次回更新日: <%= new Date(subscription.nextPaymentDate).toLocaleDateString() %></p>
+                    <% if (subscription.plan === 'annual') { %>
+                      <span class="badge badge-premium">年間プラン</span>
                     <% } else { %>
-                      <p>プレミアム機能が有効です</p>
+                      <span class="badge badge-premium">月額プラン</span>
                     <% } %>
-                  </div>
+                  <% } else { %>
+                    <p>プレミアム機能が有効です</p>
+                  <% } %>
                 </div>
-                <div class="status-actions">
-                  <a href="/subscription/manage" class="btn-secondary">
-                    <i class="fas fa-cog"></i> 管理
-                  </a>
-                </div>
+              </div>
+              <div class="status-actions">
+                <a href="/subscription/manage" class="btn-secondary">
+                  <i class="fas fa-cog"></i> 管理
+                </a>
               </div>
             </div>
           </div>
-        </section>
-        <% } %>
-      </div>
+        </div>
+      </section>
+      <% } %>
     </div>
-  
-    <script>
-      // モバイルメニュー操作のJavaScript
-      document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        const closeSidebar = document.getElementById('close-sidebar');
-        const sidebar = document.getElementById('sidebar');
-        const body = document.body;
-        
-        // モバイルメニューを開く
-        mobileMenuToggle.addEventListener('click', function() {
-          sidebar.classList.add('active');
-          body.classList.add('sidebar-open');
-        });
-        
-        // モバイルメニューを閉じる
-        closeSidebar.addEventListener('click', function() {
+  </div>
+
+  <script>
+    // モバイルメニュー操作のJavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+      const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+      const closeSidebar = document.getElementById('close-sidebar');
+      const sidebar = document.getElementById('sidebar');
+      const body = document.body;
+      
+      // モバイルメニューを開く
+      mobileMenuToggle.addEventListener('click', function() {
+        sidebar.classList.add('active');
+        body.classList.add('sidebar-open');
+      });
+      
+      // モバイルメニューを閉じる
+      closeSidebar.addEventListener('click', function() {
+        sidebar.classList.remove('active');
+        body.classList.remove('sidebar-open');
+      });
+      
+      // 画面の外側をクリックしたときにもメニューを閉じる
+      document.addEventListener('click', function(event) {
+        if (body.classList.contains('sidebar-open') && 
+            !sidebar.contains(event.target) && 
+            event.target !== mobileMenuToggle) {
           sidebar.classList.remove('active');
           body.classList.remove('sidebar-open');
-        });
-        
-        // 画面の外側をクリックしたときにもメニューを閉じる
-        document.addEventListener('click', function(event) {
-          if (body.classList.contains('sidebar-open') && 
-              !sidebar.contains(event.target) && 
-              event.target !== mobileMenuToggle) {
-            sidebar.classList.remove('active');
-            body.classList.remove('sidebar-open');
-          }
-        });
-        
-        // タブ切り替え機能
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        
-        tabBtns.forEach(btn => {
-          btn.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            
-            // 全てのタブボタンからアクティブクラスを削除
-            tabBtns.forEach(btn => btn.classList.remove('active'));
-            // 全てのタブパネルを非表示に
-            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
-            
-            // クリックされたタブボタンをアクティブに
-            this.classList.add('active');
-            // 対応するタブパネルを表示
-            document.getElementById(`${tabId}-tab`).classList.add('active');
-          });
-        });
-        
-        // コピーボタン機能を追加
-        const copyButtons = document.querySelectorAll('.copy-btn');
-        
-        copyButtons.forEach(button => {
-          button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const url = this.getAttribute('data-url');
-            
-            navigator.clipboard.writeText(url)
-              .then(() => {
-                // コピー成功時の表示
-                const originalHTML = this.innerHTML;
-                this.innerHTML = '<i class="fas fa-check"></i>';
-                this.classList.add('copied');
-                
-                setTimeout(() => {
-                  this.innerHTML = originalHTML;
-                  this.classList.remove('copied');
-                }, 2000);
-              })
-              .catch(err => {
-                console.error('コピーに失敗しました:', err);
-              });
-          });
+        }
+      });
+      
+      // タブ切り替え機能
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tabId = this.getAttribute('data-tab');
+          
+          // 全てのタブボタンからアクティブクラスを削除
+          tabBtns.forEach(btn => btn.classList.remove('active'));
+          // 全てのタブパネルを非表示に
+          document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+          
+          // クリックされたタブボタンをアクティブに
+          this.classList.add('active');
+          // 対応するタブパネルを表示
+          document.getElementById(`${tabId}-tab`).classList.add('active');
         });
       });
-    </script>
-    <style>
-      /* スマホ最適化用のスタイル */
       
-      /* モバイルメニュートグル */
-      .mobile-menu-toggle {
-        display: none;
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        background: rgba(26, 32, 44, 0.8);
-        color: var(--light-color);
-        border: none;
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
-        font-size: 1.2rem;
-        cursor: pointer;
-        z-index: 1000;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        transition: all 0.3s;
-      }
+      // コピーボタン機能を追加
+      const copyButtons = document.querySelectorAll('.copy-btn');
       
-      .mobile-menu-toggle:hover {
-        background: var(--primary-gradient);
-      }
-      
-      .close-sidebar {
-        display: none;
-        background: none;
-        border: none;
-        color: var(--light-color);
-        font-size: 1.5rem;
-        cursor: pointer;
-      }
-      
-      .sidebar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      }
-      
-      /* カード表示用のスタイル */
-      .url-cards, .domain-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1rem;
-      }
-      
-      .url-card, .domain-card {
-        background: rgba(26, 32, 44, 0.4);
-        border-radius: 12px;
-        overflow: hidden;
-        padding: 1rem;
-        display: flex;
-        justify-content: space-between;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s;
-      }
-      
-      .url-card:hover, .domain-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        background: rgba(26, 32, 44, 0.6);
-      }
-      
-      .url-card-content, .domain-card-content {
-        flex: 1;
-      }
-      
-      .url-card-actions, .domain-card-actions {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-left: 1rem;
-      }
-      
-      .original-url {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        word-break: break-all;
-      }
-      
-      .short-url {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.5rem;
-        overflow-x: auto;
-        max-width: 100%;
-        white-space: nowrap;
-        padding-bottom: 0.25rem;
-      }
-      
-      .short-url a {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-right: 0.5rem;
-      }
-      
-      .url-stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-      }
-      
-      .stat {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        display: flex;
-        align-items: center;
-        margin-right: 1rem;
-      }
-      
-      .stat i {
-        margin-right: 0.25rem;
-      }
-      
-      .domain-name {
-        font-weight: 500;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-      }
-      
-      .domain-status {
-        margin-bottom: 0.5rem;
-      }
-      
-      .domain-date {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-      }
-      
-      /* チャートスクロール対応 */
-      .chart-scrollable {
-        display: flex;
-        overflow-x: auto;
-        padding-bottom: 1rem;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-      }
-      
-      /* モダンなボタンスタイル */
-      .btn-shorten {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-        color: white;
-        border: none;
-        padding: 1.2rem;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 8px 25px rgba(110, 142, 251, 0.3);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      
-      .btn-shorten:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
-        transition: all 0.5s ease;
-      }
-      
-      .btn-shorten:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(110, 142, 251, 0.4);
-      }
-      
-      .btn-shorten:hover:before {
-        left: 100%;
-      }
-      
-      .btn-shorten:active {
-        transform: translateY(2px);
-        box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
-      }
-      .btn-text {
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const url = this.getAttribute('data-url');
+          
+          navigator.clipboard.writeText(url)
+            .then(() => {
+              // コピー成功時の表示
+              const originalHTML = this.innerHTML;
+              this.innerHTML = '<i class="fas fa-check"></i>';
+              this.classList.add('copied');
+              
+              setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.classList.remove('copied');
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('コピーに失敗しました:', err);
+            });
+        });
+      });
+    });
+  </script>
+  <style>
+    /* スマホ最適化用のスタイル */
+    
+    /* モバイルメニュートグル */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      background: rgba(26, 32, 44, 0.8);
+      color: var(--light-color);
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s;
+    }
+    
+    .mobile-menu-toggle:hover {
+      background: var(--primary-gradient);
+    }
+    
+    .close-sidebar {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--light-color);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    
+    /* カード表示用のスタイル */
+    .url-cards, .domain-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    
+    .url-card, .domain-card {
+      background: rgba(26, 32, 44, 0.4);
+      border-radius: 12px;
+      overflow: hidden;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s;
+    }
+    
+    .url-card:hover, .domain-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      background: rgba(26, 32, 44, 0.6);
+    }
+    
+    .url-card-content, .domain-card-content {
+      flex: 1;
+    }
+    
+    .url-card-actions, .domain-card-actions {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+    }
+    
+    .original-url {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      word-break: break-all;
+    }
+    
+    .short-url {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      overflow-x: auto;
+      max-width: 100%;
+      white-space: nowrap;
+      padding-bottom: 0.25rem;
+    }
+    
+    .short-url a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 0.5rem;
+    }
+    
+    .url-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .stat {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      margin-right: 1rem;
+    }
+    
+    .stat i {
+      margin-right: 0.25rem;
+    }
+    
+    .domain-name {
+      font-weight: 500;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .domain-status {
+      margin-bottom: 0.5rem;
+    }
+    
+    .domain-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    /* チャートスクロール対応 */
+    .chart-scrollable {
+      display: flex;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+    
+    /* モダンなボタンスタイル */
+    .btn-shorten {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+      color: white;
+      border: none;
+      padding: 1.2rem;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(110, 142, 251, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .btn-shorten:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: all 0.5s ease;
+    }
+    
+    .btn-shorten:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(110, 142,251, 0.4);
+    }
+    
+    .btn-shorten:hover:before {
+      left: 100%;
+    }
+    
+    .btn-shorten:active {
+      transform: translateY(2px);
+      box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
+    }
+    .btn-text {
       margin-right: 10px;
       z-index: 2;
       position: relative;
