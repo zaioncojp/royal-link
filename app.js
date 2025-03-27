@@ -680,8 +680,9 @@ app.post('/domains/add', isAuthenticated, freePlanMiddleware.checkCustomDomainPe
     const { domainName } = req.body;
     
     // ドメイン名の形式チェック
-    if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z// URL削除
-      app.get('/urls/delete/:id', isAuthenticated, async (req, res) => {
+    if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i.test(domainName)) {
+      return res.redirect('/domains/add?error=有効なドメイン名を入力してください');
+    }
         try {
           const urlId = req.params.id;
           
