@@ -843,6 +843,21 @@ app.post('/register', async (req, res) => {
 
 // ログアウト - 修正版
 // ログアウト - 修正版
+
+// ログアウト - 修正版
+app.get('/logout', (req, res) => {
+  // セッションをクリア
+  req.session = null;
+  
+  // クッキーをクリア
+  res.clearCookie('connect.sid', { path: '/' });
+  
+  // リダイレクト前に少し待機（念のため）
+  setTimeout(() => {
+    // メインページにリダイレクト
+    res.redirect('/');
+  }, 100);
+});
 app.get('/logout', (req, res) => {
   // セッションが存在する場合は破棄
   if (req.session) {
