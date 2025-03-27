@@ -15,11 +15,9 @@
       <li class="active"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>ダッシュボード</span></a></li>
       <li><a href="/domains/add"><i class="fas fa-globe"></i> <span>ドメイン追加</span></a></li>
       <li>
-        <form action="/logout" method="GET" id="logout-form">
-          <button type="submit" class="logout-button">
-            <i class="fas fa-sign-out-alt"></i> <span>ログアウト</span>
-          </button>
-        </form>
+        <a href="/logout" class="menu-link">
+          <i class="fas fa-sign-out-alt"></i> <span>ログアウト</span>
+        </a>
       </li>
     </ul>
   </nav>
@@ -98,7 +96,7 @@
   }
   
   .nav-menu li a,
-  .nav-menu li .logout-button {
+  .nav-menu li .menu-link {
     display: flex;
     align-items: center;
     padding: 1rem 1.5rem;
@@ -117,7 +115,7 @@
   }
   
   .nav-menu li a i,
-  .nav-menu li .logout-button i {
+  .nav-menu li .menu-link i {
     margin-right: 1rem;
     font-size: 1.2rem;
     width: 20px;
@@ -126,13 +124,13 @@
   }
   
   .nav-menu li a:hover,
-  .nav-menu li .logout-button:hover {
+  .nav-menu li .menu-link:hover {
     background: var(--glass-bg);
     border-left-color: var(--primary-light);
   }
   
   .nav-menu li a:hover i,
-  .nav-menu li .logout-button:hover i {
+  .nav-menu li .menu-link:hover i {
     transform: translateX(5px);
   }
   
@@ -144,10 +142,5 @@
   
   .nav-menu li.active a i {
     color: var(--primary-light);
-  }
-  
-  #logout-form {
-    margin: 0;
-    padding: 0;
   }
 </style>

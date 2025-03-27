@@ -842,7 +842,7 @@ app.post('/register', async (req, res) => {
 });
 
 
-// ログアウト - 完全な修正版
+// ログアウト - 修正版
 app.get('/logout', (req, res) => {
   // セッションを破棄
   if (req.session) {
@@ -862,43 +862,13 @@ app.get('/logout', (req, res) => {
         sameSite: 'lax'
       });
       
-      // 直接HTMLを返す（リダイレクトが機能しない場合のバックアップ）
-      res.send(`
-        <html>
-        <head>
-          <title>ログアウト - ROYAL LINK</title>
-          <script>
-            // クッキーを削除
-            document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            // リダイレクト
-            window.location.href = "/";
-          </script>
-        </head>
-        <body>
-          <p>ログアウトしています...</p>
-        </body>
-        </html>
-      `);
+      // ホームページにリダイレクト
+      res.redirect('/');
     });
   } else {
-    // セッションがない場合はクッキーを削除して直接HTMLを返す
+    // セッションがない場合はクッキーを削除してリダイレクト
     res.clearCookie('connect.sid', { path: '/' });
-    res.send(`
-      <html>
-      <head>
-        <title>ログアウト - ROYAL LINK</title>
-        <script>
-          // クッキーを削除
-          document.cookie = "connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-          // リダイレクト
-          window.location.href = "/";
-        </script>
-      </head>
-      <body>
-        <p>ログアウトしています...</p>
-      </body>
-      </html>
-    `);
+    res.redirect('/');
   }
 });
 
