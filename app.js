@@ -481,10 +481,13 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
 // URL短縮エンドポイント - 無料プランのユーザーも制限付きで利用可能
 app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, async (req, res) => {
   try {
+    console.log('URL短縮リクエスト受信:', req.body);
+    
     const { originalUrl, customSlug, domainId } = req.body;
     
     // URLが有効かチェック
     if (!validUrl.isUri(originalUrl)) {
+      console.log('無効なURL:', originalUrl);
       return res.redirect('/dashboard?error=有効なURLを入力してください');
     }
     
@@ -533,46 +536,21 @@ app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, as
       urlData.domainId = domainToUse;
     }
     
+    console.log('新規URL作成データ:', urlData);
+    
     // 新しいURL作成
     const newUrl = new Url(urlData);
-    await newUrl.save();
-    
-    res.redirect('/dashboard?success=URLを短縮しました');
+    try {
+      await newUrl.save();
+      console.log('URL保存成功:', newUrl._id);
+      return res.redirect('/dashboard?success=URLを短縮しました');
+    } catch (saveErr) {
+      console.error('URL保存エラー:', saveErr);
+      return res.redirect('/dashboard?error=URLの保存中にエラーが発生しました: ' + saveErr.message);
+    }
   } catch (err) {
     console.error('URL短縮エラー:', err);
-    res.redirect('/dashboard?error=URLの短縮中にエラーが発生しました');
-  }
-});
-
-// 短縮URLリダイレクト - sパス
-app.get('/s/:code', async (req, res) => {
-  try {
-    const shortCode = req.params.code;
-    
-    const url = await Url.findOne({ shortCode });
-    
-    if (!url) {
-      return res.status(404).render('404', { message: '短縮URLが見つかりません' });
-    }
-    
-    // クリック数を増やす
-    url.clicks++;
-    
-    // アクセスログを追加
-    url.accessLogs.push({
-      timestamp: new Date(),
-      ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
-      userAgent: req.headers['user-agent'] || 'unknown',
-      referer: req.headers.referer || 'direct'
-    });
-    
-    await url.save();
-    
-    // 元のURLにリダイレクト
-    res.redirect(url.originalUrl);
-  } catch (err) {
-    console.error('短縮URLリダイレクトエラー:', err);
-    res.status(500).render('404', { message: 'エラーが発生しました' });
+    res.redirect('/dashboard?error=URLの短縮中にエラーが発生しました: ' + err.message);
   }
 });
 
