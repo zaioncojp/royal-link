@@ -397,12 +397,19 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
         Url.find({ userId }).sort({ createdAt: -1 }).lean(),
         Domain.find({ userId }).lean()
       ]);
+      
+      console.log('URLデータ取得結果:', urls ? urls.length : 0, '件のURL');
+      if (urls && urls.length > 0) {
+        console.log('最新のURL:', urls[0]);
+      }
     } catch (dbErr) {
       console.error('データベース取得エラー:', dbErr);
       // エラー発生時は空の配列を設定
       urls = [];
       domains = [];
     }
+    
+    // ... 以下既存のコード ...
     
     console.log(`データ取得完了: ${Date.now() - startTime}ms`);
     
@@ -481,7 +488,7 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
 // URL短縮エンドポイント - 無料プランのユーザーも制限付きで利用可能
 app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, async (req, res) => {
   try {
-    console.log('URL短縮リクエスト受信:', req.body);
+    console.log('URLショートリクエスト受信:', req.body);
     
     const { originalUrl, customSlug, domainId } = req.body;
     
@@ -500,56 +507,18 @@ app.post('/shorten', isAuthenticated, freePlanMiddleware.checkFreePlanLimits, as
       domainId: null
     };
 
-    // プレミアムユーザーの場合、追加機能を有効化
-    if (req.user && req.user.hasPremium) {
-      // カスタムスラグが指定されている場合、形式チェック
-      if (customSlug && !/^[a-zA-Z0-9-_]+$/.test(customSlug)) {
-        return res.redirect('/dashboard?error=カスタムスラグには英数字、ハイフン、アンダースコアのみ使用できます');
-      }
-      
-      // カスタムスラグが既に使用されていないかチェック
-      if (customSlug) {
-        const existingUrl = await Url.findOne({ customSlug });
-        if (existingUrl) {
-          return res.redirect('/dashboard?error=このカスタムスラグは既に使用されています');
-        }
-      }
-      
-      // ドメインIDチェック
-      let domainToUse = null;
-      if (domainId && domainId !== 'default') {
-        // 指定されたドメインが存在し、かつ検証済みかチェック
-        const domain = await Domain.findOne({ _id: domainId, userId: req.session.userId });
-        if (!domain) {
-          return res.redirect('/dashboard?error=指定されたドメインが見つかりません');
-        }
-        
-        if (!domain.verified) {
-          return res.redirect('/dashboard?error=ドメインが検証されていません');
-        }
-        
-        domainToUse = domain._id;
-      }
-      
-      // プレミアムユーザーの場合、カスタム設定を適用
-      urlData.customSlug = customSlug || null;
-      urlData.domainId = domainToUse;
-    }
+    // ... 既存のコード ...
     
     console.log('新規URL作成データ:', urlData);
     
     // 新しいURL作成
     const newUrl = new Url(urlData);
-    try {
-      await newUrl.save();
-      console.log('URL保存成功:', newUrl._id);
-      return res.redirect('/dashboard?success=URLを短縮しました');
-    } catch (saveErr) {
-      console.error('URL保存エラー:', saveErr);
-      return res.redirect('/dashboard?error=URLの保存中にエラーが発生しました: ' + saveErr.message);
-    }
+    const savedUrl = await newUrl.save();
+    console.log('URL保存成功:', savedUrl);
+    
+    res.redirect('/dashboard?success=URLを短縮しました');
   } catch (err) {
-    console.error('URL短縮エラー:', err);
+    console.error('URL短縮エラー詳細:', err);
     res.redirect('/dashboard?error=URLの短縮中にエラーが発生しました: ' + err.message);
   }
 });
