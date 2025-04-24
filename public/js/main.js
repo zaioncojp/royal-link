@@ -1,30 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  const sidebar = document.querySelector('.sidebar');
+  const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
-  const closeSidebarBtn = document.getElementById('closeSidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
 
-  if (mobileMenuBtn && sidebar) {
-    mobileMenuBtn.addEventListener('click', function() {
-      sidebar.classList.toggle('active');
-      overlay.classList.toggle('active');
-      document.body.classList.toggle('menu-open');
-    });
-  }
+  // サイドバーを開く
+  mobileMenuBtn.addEventListener('click', function() {
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+  });
 
-  if (closeSidebarBtn && sidebar) {
-    closeSidebarBtn.addEventListener('click', function() {
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.classList.remove('menu-open');
-    });
-  }
+  // サイドバーを閉じる
+  closeSidebar.addEventListener('click', function() {
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+  });
 
-  if (overlay) {
-    overlay.addEventListener('click', function() {
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.classList.remove('menu-open');
-    });
-  }
+  // オーバーレイをクリックしてサイドバーを閉じる
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+  });
 });

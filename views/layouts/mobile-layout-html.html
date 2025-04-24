@@ -3,65 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title><%= typeof title !== 'undefined' ? title : 'ROYAL LINK' %></title>
+  <title>ダッシュボード - ROYAL LINK</title>
   
-  <!-- 共通スタイルシート -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- スタイルシート -->
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/mobile.css">
-  
-  <!-- モバイル最適化用CSS -->
-  <style>
-    @media (max-width: 992px) {
-      .sidebar {
-        transform: translateX(-100%);
-        z-index: 1000;
-      }
-      
-      .sidebar.active {
-        transform: translateX(0);
-      }
-      
-      .main-content {
-        margin-left: 0;
-        padding-top: 70px;
-      }
-      
-      .mobile-menu-btn {
-        display: flex;
-      }
-    }
-  </style>
 </head>
 <body>
   <!-- モバイルメニューボタン -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="メニューを開く">
     <i class="fas fa-bars"></i>
   </button>
-  
+
+  <!-- サイドバー -->
+  <div class="sidebar" id="sidebar">
+    <button class="close-sidebar" id="closeSidebar" aria-label="メニューを閉じる">
+      <i class="fas fa-times"></i>
+    </button>
+    <nav>
+      <ul>
+        <li><a href="/dashboard">ダッシュボード</a></li>
+        <li><a href="/settings">設定</a></li>
+        <li><a href="/logout">ログアウト</a></li>
+      </ul>
+    </nav>
+  </div>
+
   <!-- オーバーレイ -->
   <div class="overlay" id="overlay"></div>
-  
-  <div class="dashboard-container">
-    <!-- サイドバー -->
-    <% if (typeof showSidebar === 'undefined' || showSidebar !== false) { %>
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-          <div class="logo">
-            <div class="logo-icon">
-              <i class="fas fa-link"></i>
-            </div>
-            <span class="logo-text">ROYAL LINK</span>
-          </div>
-          <button class="close-sidebar" id="closeSidebar" aria-label="メニューを閉じる">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </aside>
-    <% } %>
-  </div>
+
+  <main class="main-content">
+    <h1>ダッシュボード</h1>
+    <p>ここにメインコンテンツが表示されます。</p>
+  </main>
+
+  <script src="/js/main.js"></script>
 </body>
 </html>
