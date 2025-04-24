@@ -27,7 +27,7 @@
 }
 
 .sidebar.active {
-  transform: translateX(260px);
+  transform: translateX(260px); /* サイドバーを表示 */
 }
 
 .close-sidebar {
