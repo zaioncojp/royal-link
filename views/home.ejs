@@ -3,78 +3,248 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ROYAL LINK - 独自ドメイン対応の短縮URL</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>ROYAL LINK - URL短縮サービス</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
-    /* フッターのスタイル */
-    .home-footer {
+    :root {
+      --primary-color: #6e8efb;
+      --primary-light: #a777e3;
+      --primary-gradient: linear-gradient(135deg, #6e8efb, #a777e3);
+      --secondary-color: #2d3748;
+      --dark-color: #1a202c;
+      --light-color: #f7fafc;
+      --text-color: #e2e8f0;
+      --text-muted: #a0aec0;
+      --glass-bg: rgba(26, 32, 44, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      color: var(--text-color);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
-      margin-top: 50px;
-      color: #999;
-      padding-bottom: 30px;
+      padding: 2rem;
     }
     
-    .footer-links {
-      margin-top: 15px;
+    .hero-content {
+      max-width: 800px;
     }
     
-    .footer-links a {
-      display: inline-block;
-      padding: 8px 15px;
-      background-color: rgba(108, 92, 231, 0.1);
-      color: #6c5ce7;
-      border: 1px solid #6c5ce7;
-      border-radius: 4px;
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
+    .hero h1 {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     
-    .footer-links a:hover {
-      background-color: #6c5ce7;
+    .hero p {
+      font-size: 1.5rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.8;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem 2rem;
+      background: var(--primary-gradient);
       color: white;
-      transform: translateY(-2px);
+      border: none;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    
+    .btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(110, 142, 251, 0.4);
+    }
+    
+    .btn i {
+      margin-right: 0.75rem;
+    }
+    
+    .features {
+      padding: 5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .features h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 4rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2.5rem;
+    }
+    
+    .feature-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+      transition: all 0.3s;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 30px rgba(31, 38, 135, 0.2);
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .feature-title {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-description {
+      color: var(--text-muted);
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      background: rgba(26, 32, 44, 0.8);
+    }
+    
+    .footer p {
+      margin-bottom: 1rem;
+    }
+    
+    .footer-link {
+      color: var(--primary-light);
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    
+    .footer-link:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 3rem;
+      }
+      
+      .hero p {
+        font-size: 1.2rem;
+      }
+      
+      .features {
+        padding: 3rem 1rem;
+      }
+      
+      .features h2 {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="home-container">
-    <header class="home-header">
-      <h1>ROYAL LINK</h1>
-      <p>ブランド価値を高める、あなただけの短縮URL</p>
-      
-      <div class="auth-buttons">
-        <a href="/login" class="btn-secondary">ログイン</a>
-        <a href="/register" class="btn-primary">新規登録</a>
-      </div>
-    </header>
-    
-    <section class="features">
-      <div class="feature-card">
-        <div class="feature-icon">📏</div>
-        <h3>簡単URL短縮</h3>
-        <p>長いURLを短くして、シンプルで覚えやすいリンクに変換します。</p>
-      </div>
-      
-      <div class="feature-card">
-        <div class="feature-icon">🌐</div>
-        <h3>独自ドメイン対応</h3>
-        <p>あなたのドメインを使って、ブランド価値を高めましょう。</p>
-      </div>
-      
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>アクセス統計</h3>
-        <p>リンクがクリックされた回数を追跡して、効果を測定できます。</p>
+  <div class="container">
+    <section class="hero">
+      <div class="hero-content">
+        <h1>ROYAL LINK</h1>
+        <p>長いURLを短く、わかりやすく。あなたのブランドを強化する短縮URLサービス</p>
+        <a href="/dashboard" class="btn">
+          <i class="fas fa-link"></i> 始める
+        </a>
       </div>
     </section>
-    
-    <footer class="home-footer">
-      <p>&copy; <%= new Date().getFullYear() %> ROYAL LINK</p>
-      <div class="footer-links">
-        <a href="/tokushoho">特定商取引法に基づく表記</a>
-      </div>
-    </footer>
   </div>
+  
+  <section class="features">
+    <h2>ROYAL LINKの機能</h2>
+    
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-cut"></i>
+        </div>
+        <h3 class="feature-title">URLを短縮</h3>
+        <p class="feature-description">
+          長いURLを短く、シンプルなリンクに変換します。共有やマーケティングに最適です。
+        </p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h3 class="feature-title">アクセス分析</h3>
+        <p class="feature-description">
+          短縮URLのクリック数や時間帯別のアクセス状況をリアルタイムで確認できます。
+        </p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3 class="feature-title">安全性</h3>
+        <p class="feature-description">
+          すべてのリンクは安全に管理され、不正アクセスから保護されています。
+        </p>
+      </div>
+    </div>
+  </section>
+  
+  <footer class="footer">
+    <p>&copy; <%= new Date().getFullYear() %> ROYAL LINK. All rights reserved.</p>
+    <p>
+      <a href="/dashboard" class="footer-link">ダッシュボード</a> | 
+      <a href="https://example.com/terms" class="footer-link">利用規約</a> | 
+      <a href="https://example.com/privacy" class="footer-link">プライバシーポリシー</a>
+    </p>
+  </footer>
 </body>
 </html>

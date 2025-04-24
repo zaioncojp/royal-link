@@ -3,47 +3,411 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ダッシュボード - 短縮URL一覧</title>
+  <title>ダッシュボード - ROYAL LINK</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
-    body { font-family: Arial, sans-serif; }
-    .url-list { margin-top: 20px; }
-    .url-item { margin-bottom: 15px; }
-    .error { color: red; }
-    .success { color: green; }
+    :root {
+      --primary-color: #6e8efb;
+      --primary-light: #a777e3;
+      --primary-gradient: linear-gradient(135deg, #6e8efb, #a777e3);
+      --secondary-color: #2d3748;
+      --dark-color: #1a202c;
+      --light-color: #f7fafc;
+      --error-color: #f56565;
+      --success-color: #48bb78;
+      --text-color: #e2e8f0;
+      --text-muted: #a0aec0;
+      --glass-bg: rgba(26, 32, 44, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+      color: var(--text-color);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    
+    .url-form {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--text-color);
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.3);
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
+    }
+    
+    .btn i {
+      margin-right: 0.5rem;
+    }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .alert i {
+      margin-right: 0.75rem;
+      font-size: 1.2rem;
+    }
+    
+    .alert-error {
+      background: rgba(245, 101, 101, 0.2);
+      border-left: 4px solid var(--error-color);
+    }
+    
+    .alert-success {
+      background: rgba(72, 187, 120, 0.2);
+      border-left: 4px solid var(--success-color);
+    }
+    
+    .url-list {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
+    }
+    
+    .url-list-header {
+      padding: 1.5rem;
+      background: rgba(26, 32, 44, 0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .url-list-header h2 {
+      font-size: 1.5rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .url-list-header h2 i {
+      margin-right: 0.75rem;
+      color: var(--primary-light);
+    }
+    
+    .url-list-body {
+      padding: 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    table th,
+    table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    table th {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    
+    table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--primary-light);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.25rem;
+      margin-left: 0.5rem;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+    
+    .copy-btn:hover {
+      background: rgba(110, 142, 251, 0.2);
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      transition: all 0.3s;
+      margin-left: 0.5rem;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+    }
+    
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .action-btn.delete-btn {
+      color: var(--error-color);
+    }
+    
+    .action-btn.delete-btn:hover {
+      background: rgba(245, 101, 101, 0.2);
+    }
+    
+    .action-btn.details-btn {
+      color: var(--primary-light);
+    }
+    
+    .action-btn.details-btn:hover {
+      background: rgba(110, 142, 251, 0.2);
+    }
+    
+    .no-urls {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .no-urls i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .no-urls p {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .truncate {
+      max-width: 250px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      
+      .truncate {
+        max-width: 150px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>ダッシュボード</h1>
-
-  <% if (error) { %>
-    <p class="error"><%= error %></p>
-  <% } %>
-
-  <% if (success) { %>
-    <p class="success"><%= success %></p>
-  <% } %>
-
-  <form action="/shorten" method="POST">
-    <label for="originalUrl">URLを入力してください:</label>
-    <input type="url" name="originalUrl" id="originalUrl" required>
-    <button type="submit">短縮URLを作成</button>
-  </form>
-
-  <section class="url-list">
-    <h2>短縮URL一覧</h2>
-    <% if (urls && urls.length > 0) { %>
-      <ul>
-        <% urls.forEach(function(url) { %>
-          <li class="url-item">
-            <a href="<%= url.getFullUrl() %>" target="_blank"><%= url.getFullUrl() %></a>
-            <p>元のURL: <%= url.originalUrl %></p>
-            <p>作成日: <%= new Date(url.createdAt).toLocaleString() %></p>
-          </li>
-        <% }); %>
-      </ul>
-    <% } else { %>
-      <p>短縮URLはまだありません。</p>
+  <div class="container">
+    <header class="header">
+      <h1>ROYAL LINK</h1>
+      <p>短縮URLを簡単に作成・管理</p>
+    </header>
+    
+    <% if (error) { %>
+      <div class="alert alert-error">
+        <i class="fas fa-exclamation-circle"></i> <%= error %>
+      </div>
     <% } %>
-  </section>
+    
+    <% if (success) { %>
+      <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> <%= success %>
+      </div>
+    <% } %>
+    
+    <form action="/shorten" method="POST" class="url-form">
+      <div class="form-group">
+        <label for="originalUrl">短縮したいURL</label>
+        <input 
+          type="url" 
+          id="originalUrl" 
+          name="originalUrl" 
+          class="form-control" 
+          placeholder="https://example.com/long-url-to-shorten" 
+          required
+        >
+      </div>
+      <button type="submit" class="btn">
+        <i class="fas fa-link"></i> URLを短縮する
+      </button>
+    </form>
+    
+    <div class="url-list">
+      <div class="url-list-header">
+        <h2><i class="fas fa-list"></i> 短縮URL一覧</h2>
+      </div>
+      <div class="url-list-body">
+        <% if (urls && urls.length > 0) { %>
+          <table>
+            <thead>
+              <tr>
+                <th>元のURL</th>
+                <th>短縮URL</th>
+                <th>クリック数</th>
+                <th>作成日</th>
+                <th>アクション</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% urls.forEach(url => { %>
+                <tr>
+                  <td class="truncate" title="<%= url.originalUrl %>">
+                    <%= url.originalUrl %>
+                  </td>
+                  <td>
+                    <% const shortUrl = `https://${appDomain}/s/${url.shortCode}`; %>
+                    <a href="<%= shortUrl %>" target="_blank">
+                      <%= shortUrl %>
+                    </a>
+                    <button class="copy-btn" data-url="<%= shortUrl %>">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </td>
+                  <td><%= url.clicks || 0 %></td>
+                  <td><%= new Date(url.createdAt).toLocaleDateString() %></td>
+                  <td>
+                    <a href="/urls/detail/<%= url._id %>" class="action-btn details-btn" title="詳細">
+                      <i class="fas fa-chart-bar"></i>
+                    </a>
+                    <a href="/urls/delete/<%= url._id %>" class="action-btn delete-btn" title="削除" 
+                       onclick="return confirm('このURLを削除してもよろしいですか？');">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="no-urls">
+            <i class="fas fa-link"></i>
+            <p>短縮URLがまだありません</p>
+            <p>上のフォームからURLを短縮してみましょう！</p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Copy button functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const copyButtons = document.querySelectorAll('.copy-btn');
+      
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const url = this.getAttribute('data-url');
+          navigator.clipboard.writeText(url)
+            .then(() => {
+              // Show success indicator
+              const originalIcon = this.innerHTML;
+              this.innerHTML = '<i class="fas fa-check"></i>';
+              setTimeout(() => {
+                this.innerHTML = originalIcon;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy URL:', err);
+              alert('URLのコピーに失敗しました');
+            });
+        });
+      });
+    });
+  </script>
 </body>
 </html>
