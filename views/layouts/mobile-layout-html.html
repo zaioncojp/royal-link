@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title><%= typeof title !== 'undefined' ? title : 'ROYAL LINK' %></title>
+  
   <!-- 共通スタイルシート -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,24 +12,42 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/mobile.css">
+  
+  <!-- モバイル最適化用CSS -->
+  <style>
+    /* インラインでモバイル最適化の重要な部分を追加 */
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+        z-index: 1000;
+      }
+      
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+        padding-top: 70px;
+      }
+      
+      .mobile-menu-btn {
+        display: flex;
+      }
+    }
+  </style>
+  
   <!-- ページ固有のヘッダー内容 -->
   <%- typeof headerContent !== 'undefined' ? headerContent : '' %>
 </head>
 <body>
   <!-- モバイルメニューボタン -->
-  <button class="mobile-menu-btn" id="mobileMenuBtn">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="メニューを開く">
     <i class="fas fa-bars"></i>
   </button>
   
   <!-- オーバーレイ -->
   <div class="overlay" id="overlay"></div>
-  
-  <!-- バックグラウンドデザイン要素 -->
-  <div class="bg-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-  </div>
   
   <div class="dashboard-container">
     <!-- サイドバー -->
@@ -41,7 +60,7 @@
             </div>
             <span class="logo-text">ROYAL LINK</span>
           </div>
-          <button class="close-sidebar" id="closeSidebar">
+          <button class="close-sidebar" id="closeSidebar" aria-label="メニューを閉じる">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -140,6 +159,7 @@
   
   <!-- 共通JavaScriptファイル -->
   <script src="/js/main.js"></script>
+  <script src="/js/mobile-menu.js"></script>
   
   <!-- ページ固有のスクリプト -->
   <%- typeof scripts !== 'undefined' ? scripts : '' %>

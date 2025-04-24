@@ -1,201 +1,258 @@
-/* モバイル共通のスタイル */
+/* モバイル最適化のためのCSS */
 :root {
-    --sidebar-width: 260px;
-    --sidebar-mobile-width: 80px;
-    --sidebar-collapsed-width: 0px;
-    --primary-color: #6c5ce7;
-    --primary-light: #9d8df2;
-    --secondary-color: #6558f5;
-    --accent-color: #ff6e6e;
-    --dark-color: #0e101a;
-    --dark-secondary: #161927;
-    --light-color: #f7fafc;
-    --text-color: #e6e9f4;
-    --text-secondary: #b8bfd0;
-  }
-  
-  /* モバイルメニューボタン */
+  --sidebar-width: 260px;
+  --sidebar-mobile-width: 0px;
+  --primary-color: #6c5ce7;
+  --primary-light: #9d8df2;
+  --secondary-color: #6558f5;
+  --accent-color: #ff6e6e;
+  --dark-color: #0e101a;
+  --dark-secondary: #161927;
+  --light-color: #f7fafc;
+  --text-color: #e6e9f4;
+  --text-secondary: #b8bfd0;
+  --card-bg: rgba(31, 41, 55, 0.7);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --transition-speed: 0.3s;
+}
+
+/* モバイルメニュートグルボタン */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(26, 32, 44, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-color);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all var(--transition-speed);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-btn:hover,
+.mobile-menu-btn:focus {
+  background: rgba(32, 40, 56, 0.9);
+}
+
+/* オーバーレイ */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 90;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-speed);
+}
+
+.overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* クローズボタン */
+.close-sidebar {
+  display: none;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 100;
+  transition: all var(--transition-speed);
+}
+
+.close-sidebar:hover,
+.close-sidebar:focus {
+  color: var(--light-color);
+  transform: rotate(90deg);
+}
+
+/* サイドバー */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 95;
+  background-color: var(--dark-secondary);
+  transition: transform var(--transition-speed) ease;
+  overflow-y: auto;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* メインコンテンツ */
+.main-content {
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition-speed) ease;
+}
+
+/* スクロール禁止 */
+body.menu-open {
+  overflow: hidden;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 992px) {
+  /* モバイルメニューボタンを表示 */
   .mobile-menu-btn {
-    display: none;
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    width: 40px;
-    height: 40px;
-    background: rgba(26, 32, 44, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: var(--text-color);
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 99;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
   }
   
-  .mobile-menu-btn:hover {
-    background: rgba(32, 40, 56, 0.8);
-  }
-  
-  /* クローズボタン */
+  /* クローズボタンを表示 */
   .close-sidebar {
-    display: none;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 10;
+    display: block;
   }
   
-  .close-sidebar:hover {
-    color: var(--light-color);
-    transform: rotate(90deg);
+  /* サイドバーを画面外に移動 */
+  .sidebar {
+    transform: translateX(-100%);
   }
   
-  /* オーバーレイ */
-  .overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+  /* サイドバーがアクティブ時 */
+  .sidebar.active {
+    transform: translateX(0);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* メインコンテンツをフルに表示 */
+  .main-content {
+    margin-left: 0;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 70px;
+  }
+  
+  /* ヘッダーをモバイル対応 */
+  .top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-left: 10px;
+  }
+  
+  /* 検索フォームをモバイル対応 */
+  .search-form {
     width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 98;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(3px);
   }
   
-  .overlay.active {
-    opacity: 1;
-    visibility: visible;
+  .search-input {
+    width: 100% !important;
   }
   
-  /* サイドバーのモバイル対応 */
-  @media (max-width: 992px) {
-    /* モバイルメニューボタンを表示 */
-    .mobile-menu-btn {
-      display: flex;
-    }
-    
-    /* クローズボタンを表示 */
-    .close-sidebar {
-      display: block;
-    }
-    
-    /* サイドバーを画面外に隠す */
-    .sidebar {
-      transform: translateX(-100%);
-      width: var(--sidebar-width);
-      z-index: 99;
-      box-shadow: none;
-    }
-    
-    /* アクティブ時にサイドバーを表示 */
-    .sidebar.active {
-      transform: translateX(0);
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* メインコンテンツをフルに表示 */
-    .main-content {
-      margin-left: 0 !important;
-      padding-top: 80px !important;
-    }
-    
-    /* ページタイトルを中央に */
-    .top-bar {
-      justify-content: center;
-      flex-direction: column;
-      gap: 15px;
-    }
-    
-    /* 検索フォームを最大幅に */
-    .search-form {
-      width: 100%;
-    }
-    
-    .search-input {
-      width: 100% !important;
-    }
-    
-    /* メニュー開放時に本文のスクロールを防止 */
-    body.menu-open {
-      overflow: hidden;
-    }
+  /* カードの余白を調整 */
+  .card-body {
+    padding: 15px;
   }
   
-  /* スマホの小さい画面用 */
-  @media (max-width: 576px) {
-    /* フォーム要素を縦並びに */
-    .form-row {
-      flex-direction: column !important;
-    }
-    
-    /* カード内の余白調整 */
-    .card-body {
-      padding: 15px !important;
-    }
-    
-    /* テーブルのレスポンシブ対応 */
-    table, thead, tbody, th, td, tr {
-      display: block;
-    }
-    
-    thead tr {
-      position: absolute;
-      top: -9999px;
-      left: -9999px;
-    }
-    
-    tr {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      margin-bottom: 15px;
-      border-radius: 6px;
-    }
-    
-    td {
-      border: none !important;
-      position: relative;
-      padding-left: 50% !important;
-      text-align: right !important;
-      min-height: 30px;
-    }
-    
-    td:before {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      width: 45%;
-      padding-right: 10px;
-      white-space: nowrap;
-      text-align: left;
-      font-weight: bold;
-      content: attr(data-label);
-    }
-    
-    /* ボタンを全幅に */
-    .btn-primary, .btn-secondary, .shorten-btn {
-      width: 100% !important;
-    }
+  /* フォームの調整 */
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
   }
   
-  /* 小さいタブレット向け調整 */
-  @media (max-width: 768px) {
-    .stats-grid, 
-    .plan-container, 
-    .features-grid {
-      grid-template-columns: 1fr !important;
-    }
-    
-    .url-list {
-      grid-template-columns: 1fr !important;
-    }
+  /* URL短縮フォームの調整 */
+  .shorten-form {
+    flex-direction: column;
   }
+  
+  .shorten-btn {
+    margin-top: 15px;
+    width: 100%;
+  }
+  
+  /* グリッドレイアウトの調整 */
+  .stats-grid,
+  .features-grid,
+  .plan-container {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .url-list {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* スマホサイズへの対応 */
+@media (max-width: 576px) {
+  /* テーブルの調整 */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+  
+  thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  
+  tr {
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+  }
+  
+  td {
+    position: relative;
+    padding-left: 50% !important;
+    text-align: right !important;
+    border: none !important;
+  }
+  
+  td:before {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 45%;
+    white-space: nowrap;
+    text-align: left;
+    font-weight: 500;
+    content: attr(data-label);
+  }
+  
+  /* ボタンの調整 */
+  .btn-primary, .btn-secondary, .btn-small {
+    width: 100%;
+    margin-bottom: 10px;
+    text-align: center;
+    justify-content: center;
+  }
+  
+  /* グラフの調整 */
+  .chart-container {
+    overflow-x: scroll;
+    padding-bottom: 20px;
+  }
+  
+  /* サマリーカードの調整 */
+  .summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* ダイアログの調整 */
+  .modal-content {
+    width: 95%;
+    max-width: 100%;
+    margin: 10px auto;
+  }
+}
