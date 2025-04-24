@@ -6,6 +6,9 @@ const shortid = require('shortid');
 const app = express();
 require('dotenv').config();
 
+// Fix for Mongoose strictQuery deprecation warning
+mongoose.set('strictQuery', false);
+
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/url_shortener', {
   useNewUrlParser: true,
