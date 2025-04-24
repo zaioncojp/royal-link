@@ -11,13 +11,13 @@
 </head>
 <body>
   <!-- モバイルメニューボタン -->
-  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="メニューを開く">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="サイドバーを開く">
     <i class="fas fa-bars"></i>
   </button>
 
   <!-- サイドバー -->
   <aside class="sidebar" id="sidebar">
-    <button class="close-sidebar" id="closeSidebar" aria-label="メニューを閉じる">
+    <button class="close-sidebar" id="closeSidebar" aria-label="サイドバーを閉じる">
       <i class="fas fa-times"></i>
     </button>
     <nav>
@@ -34,7 +34,12 @@
 
   <main class="main-content">
     <h1>ダッシュボード</h1>
-    <p>ここにメインコンテンツが表示されます。</p>
+    <p>短縮URL機能を利用するには以下のフォームをお使いください。</p>
+    <!-- 短縮URLフォームの例 -->
+    <form action="/shorten" method="POST">
+      <input type="url" name="originalUrl" placeholder="短縮したいURLを入力" required>
+      <button type="submit">短縮URLを作成</button>
+    </form>
   </main>
 
   <script src="/js/main.js"></script>
