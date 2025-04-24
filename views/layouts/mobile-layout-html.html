@@ -15,7 +15,6 @@
   
   <!-- モバイル最適化用CSS -->
   <style>
-    /* インラインでモバイル最適化の重要な部分を追加 */
     @media (max-width: 992px) {
       .sidebar {
         transform: translateX(-100%);
@@ -36,9 +35,6 @@
       }
     }
   </style>
-  
-  <!-- ページ固有のヘッダー内容 -->
-  <%- typeof headerContent !== 'undefined' ? headerContent : '' %>
 </head>
 <body>
   <!-- モバイルメニューボタン -->
@@ -64,104 +60,8 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        
-        <% if (locals.user) { %>
-          <div class="user-profile">
-            <div class="profile-card">
-              <div class="profile-avatar">
-                <i class="fas fa-user"></i>
-              </div>
-              <div class="profile-info">
-                <h3><%= user.username %></h3>
-                <p><%= user.hasPremium ? 'プレミアム' : '無料プラン' %></p>
-              </div>
-            </div>
-          </div>
-          
-          <nav class="nav-menu">
-            <div class="menu-label">メインナビゲーション</div>
-            <ul class="menu-list">
-              <li class="menu-item <%= currentPage === 'dashboard' ? 'active' : '' %>">
-                <a href="/dashboard" class="menu-link">
-                  <i class="fas fa-tachometer-alt"></i>
-                  <span>ダッシュボード</span>
-                </a>
-              </li>
-              <li class="menu-item <%= currentPage === 'domains' ? 'active' : '' %>">
-                <a href="/domains/add" class="menu-link">
-                  <i class="fas fa-globe"></i>
-                  <span>ドメイン管理</span>
-                </a>
-              </li>
-              <li class="menu-item <%= currentPage === 'subscription' ? 'active' : '' %>">
-                <a href="/subscription/plans" class="menu-link">
-                  <i class="fas fa-crown"></i>
-                  <span>プレミアムプラン</span>
-                </a>
-              </li>
-            </ul>
-            
-            <div class="menu-label">アカウント</div>
-            <ul class="menu-list">
-              <li class="menu-item">
-                <a href="/logout" class="menu-link">
-                  <i class="fas fa-sign-out-alt"></i>
-                  <span>ログアウト</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
-        <% } else { %>
-          <nav class="nav-menu">
-            <ul class="menu-list">
-              <li class="menu-item">
-                <a href="/" class="menu-link">
-                  <i class="fas fa-home"></i>
-                  <span>ホーム</span>
-                </a>
-              </li>
-              <li class="menu-item">
-                <a href="/login" class="menu-link">
-                  <i class="fas fa-sign-in-alt"></i>
-                  <span>ログイン</span>
-                </a>
-              </li>
-              <li class="menu-item">
-                <a href="/register" class="menu-link">
-                  <i class="fas fa-user-plus"></i>
-                  <span>新規登録</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
-        <% } %>
       </aside>
     <% } %>
-    
-    <!-- メインコンテンツ -->
-    <main class="main-content">
-      <% if (locals.error) { %>
-        <div class="alert alert-error">
-          <i class="fas fa-exclamation-circle"></i> <%= error %>
-        </div>
-      <% } %>
-      
-      <% if (locals.success) { %>
-        <div class="alert alert-success">
-          <i class="fas fa-check-circle"></i> <%= success %>
-        </div>
-      <% } %>
-      
-      <!-- コンテンツ挿入位置 -->
-      <%- body %>
-    </main>
   </div>
-  
-  <!-- 共通JavaScriptファイル -->
-  <script src="/js/main.js"></script>
-  <script src="/js/mobile-menu.js"></script>
-  
-  <!-- ページ固有のスクリプト -->
-  <%- typeof scripts !== 'undefined' ? scripts : '' %>
 </body>
 </html>

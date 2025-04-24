@@ -1,22 +1,12 @@
-/* モバイル最適化のためのCSS */
+/* モバイル最適化のためのスタイル */
 :root {
   --sidebar-width: 260px;
   --sidebar-mobile-width: 0px;
   --primary-color: #6c5ce7;
-  --primary-light: #9d8df2;
-  --secondary-color: #6558f5;
-  --accent-color: #ff6e6e;
-  --dark-color: #0e101a;
-  --dark-secondary: #161927;
-  --light-color: #f7fafc;
   --text-color: #e6e9f4;
-  --text-secondary: #b8bfd0;
-  --card-bg: rgba(31, 41, 55, 0.7);
-  --card-border: rgba(255, 255, 255, 0.05);
-  --transition-speed: 0.3s;
 }
 
-/* モバイルメニュートグルボタン */
+/* モバイルメニューボタン */
 .mobile-menu-btn {
   display: none;
   position: fixed;
@@ -25,61 +15,11 @@
   width: 40px;
   height: 40px;
   background: rgba(26, 32, 44, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: var(--text-color);
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   z-index: 1000;
-  transition: all var(--transition-speed);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.mobile-menu-btn:hover,
-.mobile-menu-btn:focus {
-  background: rgba(32, 40, 56, 0.9);
-}
-
-/* オーバーレイ */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(3px);
-  z-index: 90;
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--transition-speed);
-}
-
-.overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* クローズボタン */
-.close-sidebar {
-  display: none;
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  z-index: 100;
-  transition: all var(--transition-speed);
-}
-
-.close-sidebar:hover,
-.close-sidebar:focus {
-  color: var(--light-color);
-  transform: rotate(90deg);
 }
 
 /* サイドバー */
@@ -90,169 +30,29 @@
   top: 0;
   left: 0;
   z-index: 95;
-  background-color: var(--dark-secondary);
-  transition: transform var(--transition-speed) ease;
-  overflow-y: auto;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  background-color: #161927;
+  transition: transform 0.3s ease;
+  transform: translateX(-100%);
 }
 
-/* メインコンテンツ */
-.main-content {
-  margin-left: var(--sidebar-width);
-  transition: margin-left var(--transition-speed) ease;
+.sidebar.active {
+  transform: translateX(0);
 }
 
-/* スクロール禁止 */
-body.menu-open {
-  overflow: hidden;
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 90;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 992px) {
-  /* モバイルメニューボタンを表示 */
-  .mobile-menu-btn {
-    display: flex;
-  }
-  
-  /* クローズボタンを表示 */
-  .close-sidebar {
-    display: block;
-  }
-  
-  /* サイドバーを画面外に移動 */
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  
-  /* サイドバーがアクティブ時 */
-  .sidebar.active {
-    transform: translateX(0);
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* メインコンテンツをフルに表示 */
-  .main-content {
-    margin-left: 0;
-    padding-left: 15px;
-    padding-right: 15px;
-    padding-top: 70px;
-  }
-  
-  /* ヘッダーをモバイル対応 */
-  .top-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding-left: 10px;
-  }
-  
-  /* 検索フォームをモバイル対応 */
-  .search-form {
-    width: 100%;
-  }
-  
-  .search-input {
-    width: 100% !important;
-  }
-  
-  /* カードの余白を調整 */
-  .card-body {
-    padding: 15px;
-  }
-  
-  /* フォームの調整 */
-  .form-row {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  /* URL短縮フォームの調整 */
-  .shorten-form {
-    flex-direction: column;
-  }
-  
-  .shorten-btn {
-    margin-top: 15px;
-    width: 100%;
-  }
-  
-  /* グリッドレイアウトの調整 */
-  .stats-grid,
-  .features-grid,
-  .plan-container {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .url-list {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* スマホサイズへの対応 */
-@media (max-width: 576px) {
-  /* テーブルの調整 */
-  .table-responsive {
-    overflow-x: auto;
-  }
-  
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-  
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-  }
-  
-  tr {
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-  }
-  
-  td {
-    position: relative;
-    padding-left: 50% !important;
-    text-align: right !important;
-    border: none !important;
-  }
-  
-  td:before {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 45%;
-    white-space: nowrap;
-    text-align: left;
-    font-weight: 500;
-    content: attr(data-label);
-  }
-  
-  /* ボタンの調整 */
-  .btn-primary, .btn-secondary, .btn-small {
-    width: 100%;
-    margin-bottom: 10px;
-    text-align: center;
-    justify-content: center;
-  }
-  
-  /* グラフの調整 */
-  .chart-container {
-    overflow-x: scroll;
-    padding-bottom: 20px;
-  }
-  
-  /* サマリーカードの調整 */
-  .summary-grid {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* ダイアログの調整 */
-  .modal-content {
-    width: 95%;
-    max-width: 100%;
-    margin: 10px auto;
-  }
+.overlay.active {
+  opacity: 1;
+  visibility: visible;
 }
