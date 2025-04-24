@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><%= typeof title !== 'undefined' ? title : 'ROYAL LINK' %></title>
+  <!-- 共通スタイルシート -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/mobile.css">
+  <!-- ページ固有のヘッダー内容 -->
+  <%- typeof headerContent !== 'undefined' ? headerContent : '' %>
+</head>
+<body>
+  <!-- モバイルメニューボタン -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn">
+    <i class="fas fa-bars"></i>
+  </button>
+  
+  <!-- オーバーレイ -->
+  <div class="overlay" id="overlay"></div>
+  
+  <!-- バックグラウンドデザイン要素 -->
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+  
+  <div class="dashboard-container">
+    <!-- サイドバー -->
+    <% if (typeof showSidebar === 'undefined' || showSidebar !== false) { %>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <div class="logo-icon">
+              <i class="fas fa-link"></i>
+            </div>
+            <span class="logo-text">ROYAL LINK</span>
+          </div>
+          <button class="close-sidebar" id="closeSidebar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <% if (locals.user) { %>
+          <div class="user-profile">
+            <div class="profile-card">
+              <div class="profile-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="profile-info">
+                <h3><%= user.username %></h3>
+                <p><%= user.hasPremium ? 'プレミアム' : '無料プラン' %></p>
+              </div>
+            </div>
+          </div>
+          
+          <nav class="nav-menu">
+            <div class="menu-label">メインナビゲーション</div>
+            <ul class="menu-list">
+              <li class="menu-item <%= currentPage === 'dashboard' ? 'active' : '' %>">
+                <a href="/dashboard" class="menu-link">
+                  <i class="fas fa-tachometer-alt"></i>
+                  <span>ダッシュボード</span>
+                </a>
+              </li>
+              <li class="menu-item <%= currentPage === 'domains' ? 'active' : '' %>">
+                <a href="/domains/add" class="menu-link">
+                  <i class="fas fa-globe"></i>
+                  <span>ドメイン管理</span>
+                </a>
+              </li>
+              <li class="menu-item <%= currentPage === 'subscription' ? 'active' : '' %>">
+                <a href="/subscription/plans" class="menu-link">
+                  <i class="fas fa-crown"></i>
+                  <span>プレミアムプラン</span>
+                </a>
+              </li>
+            </ul>
+            
+            <div class="menu-label">アカウント</div>
+            <ul class="menu-list">
+              <li class="menu-item">
+                <a href="/logout" class="menu-link">
+                  <i class="fas fa-sign-out-alt"></i>
+                  <span>ログアウト</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        <% } else { %>
+          <nav class="nav-menu">
+            <ul class="menu-list">
+              <li class="menu-item">
+                <a href="/" class="menu-link">
+                  <i class="fas fa-home"></i>
+                  <span>ホーム</span>
+                </a>
+              </li>
+              <li class="menu-item">
+                <a href="/login" class="menu-link">
+                  <i class="fas fa-sign-in-alt"></i>
+                  <span>ログイン</span>
+                </a>
+              </li>
+              <li class="menu-item">
+                <a href="/register" class="menu-link">
+                  <i class="fas fa-user-plus"></i>
+                  <span>新規登録</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        <% } %>
+      </aside>
+    <% } %>
+    
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+      <% if (locals.error) { %>
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-circle"></i> <%= error %>
+        </div>
+      <% } %>
+      
+      <% if (locals.success) { %>
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle"></i> <%= success %>
+        </div>
+      <% } %>
+      
+      <!-- コンテンツ挿入位置 -->
+      <%- body %>
+    </main>
+  </div>
+  
+  <!-- 共通JavaScriptファイル -->
+  <script src="/js/main.js"></script>
+  
+  <!-- ページ固有のスクリプト -->
+  <%- typeof scripts !== 'undefined' ? scripts : '' %>
+</body>
+</html>

@@ -398,9 +398,9 @@ app.get('/dashboard', isAuthenticated, checkSubscriptionStatus, getSubscriptionI
         Domain.find({ userId }).lean()
       ]);
       
-      console.log('URLデータ取得結果:', urls ? urls.length : 0, '件のURL');
+      console.log('URLデータ:', urls ? `${urls.length}件` : 'なし');
       if (urls && urls.length > 0) {
-        console.log('最新のURL:', urls[0]);
+        console.log('最新のURL例:', JSON.stringify(urls[0]));
       }
     } catch (dbErr) {
       console.error('データベース取得エラー:', dbErr);
@@ -1182,5 +1182,25 @@ app.use((req, res) => {
 const server = app.listen(PORT, HOST, () => {
   console.log(`サーバーが http://${HOST}:${PORT} で起動しました`);
 });
+// express-ejsレイアウトを使用する場合
+const expressLayouts = require('express-ejs-layouts');
+app.use(expressLayouts);
+app.set('layout', 'layouts/main');
+app.set('layout extractScripts', true);
+app.set('layout extractStyles', true);
 
+// または簡易的な方法として、ミドルウェアを追加
+app.use((req, res, next) => {
+  // 現在のページ情報をビューに渡す
+  res.locals.currentPage = req.path.split('/')[1] || 'home';
+  
+  // フラッシュメッセージがある場合はビューに渡す
+  if (req.session && req.session.flash) {
+    res.locals.error = req.session.flash.error;
+    res.locals.success = req.session.flash.success;
+    delete req.session.flash;
+  }
+  
+  next();
+});
 module.exports = server;
