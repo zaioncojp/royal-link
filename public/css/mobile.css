@@ -10,6 +10,7 @@
   border: none;
   padding: 10px;
   border-radius: 5px;
+  cursor: pointer;
 }
 
 .sidebar {
@@ -22,6 +23,7 @@
   color: #fff;
   transition: transform 0.3s ease;
   z-index: 1001;
+  overflow-y: auto;
 }
 
 .sidebar.active {
@@ -36,6 +38,7 @@
   border: none;
   color: #fff;
   font-size: 1.5rem;
+  cursor: pointer;
 }
 
 .overlay {

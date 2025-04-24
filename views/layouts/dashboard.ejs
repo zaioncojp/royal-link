@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ダッシュボード - ROYAL LINK</title>
+  
+  <!-- スタイルシート -->
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+  <!-- モバイルメニューボタン -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="メニューを開く">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- サイドバー -->
+  <aside class="sidebar" id="sidebar">
+    <button class="close-sidebar" id="closeSidebar" aria-label="メニューを閉じる">
+      <i class="fas fa-times"></i>
+    </button>
+    <nav>
+      <ul>
+        <li><a href="/dashboard">ダッシュボード</a></li>
+        <li><a href="/settings">設定</a></li>
+        <li><a href="/logout">ログアウト</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- オーバーレイ -->
+  <div class="overlay" id="overlay"></div>
+
+  <main class="main-content">
+    <h1>ダッシュボード</h1>
+    <p>ここにメインコンテンツが表示されます。</p>
+  </main>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
