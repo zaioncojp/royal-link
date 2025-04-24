@@ -3,94 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ダッシュボード - ROYAL LINK</title>
+  <title>近未来ダッシュボード - ROYAL LINK</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css">
+  <style>
+    :root {
+      --primary-color: #12c2e9;
+      --secondary-color: #c471ed;
+      --accent-color: #f64f59;
+      --bg-color: #1b1b2f;
+      --card-bg: rgba(255, 255, 255, 0.1);
+      --text-color: #ffffff;
+      --text-secondary: #c0c0c0;
+      --border-radius: 16px;
+      --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      --neon-glow: 0 0 8px rgba(18, 194, 233, 0.8), 0 0 16px rgba(196, 113, 237, 0.8), 0 0 24px rgba(246, 79, 89, 0.8);
+    }
+
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+    }
+
+    .dashboard-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2.5rem;
+      margin: 0;
+      color: var(--primary-color);
+      text-shadow: var(--neon-glow);
+    }
+
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--neon-glow);
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+      margin: 10px 0;
+    }
+
+    .stat-title {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+    }
+
+    .url-shortener {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 30px;
+      width: 100%;
+      max-width: 600px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .url-shortener h2 {
+      font-size: 1.8rem;
+      color: var(--primary-color);
+      margin-bottom: 20px;
+      text-shadow: var(--neon-glow);
+    }
+
+    .shorten-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .shorten-form input {
+      padding: 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-color);
+      backdrop-filter: blur(5px);
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .shorten-btn {
+      background: linear-gradient(to right, var(--primary-color), var(--secondary-color), var(--accent-color));
+      color: #fff;
+      border: none;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+      text-shadow: var(--neon-glow);
+    }
+
+    .shorten-btn:hover {
+      transform: translateY(-3px);
+    }
+  </style>
 </head>
 <body>
-  <!-- モバイルメニューボタン -->
-  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="サイドバーを開く">
-    <i class="fas fa-bars"></i>
-  </button>
-
-  <!-- サイドバー -->
-  <aside class="sidebar" id="sidebar">
-    <button class="close-sidebar" id="closeSidebar" aria-label="サイドバーを閉じる">
-      <i class="fas fa-times"></i>
-    </button>
-    <nav>
-      <ul>
-        <li class="menu-item"><a href="/dashboard" class="menu-link active"><i class="fas fa-tachometer-alt"></i> ダッシュボード</a></li>
-        <li class="menu-item"><a href="/analytics" class="menu-link"><i class="fas fa-chart-line"></i> アクセス分析</a></li>
-        <li class="menu-item"><a href="/domains" class="menu-link"><i class="fas fa-globe"></i> ドメイン管理</a></li>
-        <li class="menu-item"><a href="/profile" class="menu-link"><i class="fas fa-user"></i> プロフィール設定</a></li>
-        <li class="menu-item"><a href="/premium" class="menu-link"><i class="fas fa-crown"></i> プレミアムプラン</a></li>
-        <li class="menu-item"><a href="/logout" class="menu-link logout"><i class="fas fa-sign-out-alt"></i> ログアウト</a></li>
-      </ul>
-    </nav>
-  </aside>
-
-  <!-- オーバーレイ -->
-  <div class="overlay" id="overlay"></div>
-
-  <!-- メインコンテンツ -->
-  <main class="main-content">
+  <div class="dashboard-container">
+    <!-- ヘッダー -->
     <header class="dashboard-header">
-      <h1 class="page-title">ダッシュボード</h1>
+      <h1>近未来ダッシュボード</h1>
     </header>
-    <section class="dashboard-content">
-      <div class="dashboard-stats">
-        <div class="stat-card">
-          <h2 class="stat-value">120</h2>
-          <p class="stat-title">短縮URL数</p>
-        </div>
-        <div class="stat-card">
-          <h2 class="stat-value">5400</h2>
-          <p class="stat-title">クリック数</p>
-        </div>
+
+    <!-- 統計カード -->
+    <section class="dashboard-stats">
+      <div class="stat-card">
+        <h2 class="stat-value">120</h2>
+        <p class="stat-title">短縮URL数</p>
       </div>
-      <div class="url-shortener">
-        <div class="section-header">
-          <h2 class="section-title"><i class="fas fa-link"></i> 短縮URL作成</h2>
-        </div>
-        <form class="shorten-form" action="/shorten" method="POST">
-          <div class="form-group">
-            <label for="originalUrl" class="form-label">URLを入力</label>
-            <input type="url" id="originalUrl" name="originalUrl" class="form-input" placeholder="例: https://example.com" required>
-          </div>
-          <button type="submit" class="shorten-btn"><i class="fas fa-paper-plane"></i> 作成</button>
-        </form>
+      <div class="stat-card">
+        <h2 class="stat-value">5400</h2>
+        <p class="stat-title">クリック数</p>
+      </div>
+      <div class="stat-card">
+        <h2 class="stat-value">75%</h2>
+        <p class="stat-title">コンバージョン率</p>
       </div>
     </section>
-  </main>
 
-  <script>
-    // サイドバーの開閉制御
-    document.addEventListener('DOMContentLoaded', function () {
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('overlay');
-      const closeSidebar = document.getElementById('closeSidebar');
-
-      mobileMenuBtn.addEventListener('click', function () {
-        sidebar.classList.add('active');
-        overlay.classList.add('active');
-      });
-
-      closeSidebar.addEventListener('click', function () {
-        sidebar.classList.remove('active');
-        overlay.classList.remove('active');
-      });
-
-      overlay.addEventListener('click', function () {
-        sidebar.classList.remove('active');
-        overlay.classList.remove('active');
-      });
-    });
-  </script>
+    <!-- URL短縮フォーム -->
+    <section class="url-shortener">
+      <h2>URLを短縮する</h2>
+      <form class="shorten-form" action="/shorten" method="POST">
+        <input type="url" name="originalUrl" placeholder="例: https://example.com" required>
+        <button type="submit" class="shorten-btn">短縮する</button>
+      </form>
+    </section>
+  </div>
 </body>
 </html>
