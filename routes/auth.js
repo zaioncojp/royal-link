@@ -3,20 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { isAuthenticated, recoverSession } = require('../middlewares/auth');
-
-// ホームページ
-router.get('/', (req, res) => {
-  try {
-    if (req.session.userId) {
-      return res.redirect('/dashboard');
-    }
-    return res.render('home');
-  } catch (err) {
-    console.error('ホームページエラー:', err);
-    res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
-  }
-});
+const { isAuthenticated } = require('../middlewares/auth');
 
 // ログインページ表示
 router.get('/login', (req, res) => {
@@ -25,7 +12,7 @@ router.get('/login', (req, res) => {
     if (req.session.userId) {
       return res.redirect('/dashboard');
     }
-    res.render('login', { error: null });
+    res.render('login', { error: req.query.error || null });
   } catch (err) {
     console.error('ログインページエラー:', err);
     res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
@@ -55,7 +42,7 @@ router.post('/login', async (req, res) => {
     }
     
     // パスワード検証
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.render('login', { error: 'ユーザー名またはパスワードが正しくありません' });
     }
@@ -85,7 +72,7 @@ router.get('/register', (req, res) => {
     if (req.session.userId) {
       return res.redirect('/dashboard');
     }
-    res.render('register', { error: null });
+    res.render('register', { error: req.query.error || null });
   } catch (err) {
     console.error('登録ページエラー:', err);
     res.status(500).send('ROYAL LINK - 内部サーバーエラーが発生しました');
