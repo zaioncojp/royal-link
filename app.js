@@ -321,7 +321,7 @@ app.post('/shorten', isAuthenticated, checkFreePlanLimits, async (req, res) => {
     
     // Apply free plan restrictions if not premium
     if (req.user && !req.user.hasPremium) {
-      // Only if the applyFreePlanRestrictions function is available
+      const { applyFreePlanRestrictions } = require('./middlewares/freePlan');
       if (typeof applyFreePlanRestrictions === 'function') {
         urlData = applyFreePlanRestrictions(urlData, req.user);
       } else {

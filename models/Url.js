@@ -1,52 +1,68 @@
+// models/User.js - ユーザーモデル
 const mongoose = require('mongoose');
-const shortid = require('shortid');
+const bcrypt = require('bcryptjs');
 
-const urlSchema = new mongoose.Schema({
-  userId: { 
+const userSchema = new mongoose.Schema({
+  username: { 
     type: String, 
-    required: true 
+    required: true, 
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30
   },
-  originalUrl: { 
+  email: { 
     type: String, 
-    required: true 
+    required: true, 
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'メールアドレスの形式が正しくありません']
   },
-  shortCode: { 
+  password: { 
     type: String, 
     required: true,
-    default: shortid.generate
-  },
-  customSlug: { 
-    type: String, 
-    default: null 
-  },
-  domainId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Domain', 
-    default: null 
-  },
-  clicks: { 
-    type: Number, 
-    default: 0 
+    minlength: 6
   },
   createdAt: { 
     type: Date, 
     default: Date.now 
   },
-  // Access logs
-  accessLogs: [{
-    timestamp: { type: Date, default: Date.now },
-    ipAddress: { type: String },
-    userAgent: { type: String },
-    referer: { type: String }
-  }]
+  hasPremium: { 
+    type: Boolean, 
+    default: false 
+  },
+  lastLogin: {
+    type: Date
+  }
 });
 
-// Method to generate the full URL
-urlSchema.methods.getFullUrl = function(appDomain = 'king-rule.site') {
-  if (this.customSlug) {
-    return `https://${appDomain}/${this.customSlug}`;
+// パスワードのハッシュ化
+userSchema.pre('save', async function(next) {
+  const user = this;
+  
+  // パスワードが変更されていない場合はスキップ
+  if (!user.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
+    next();
+  } catch (err) {
+    next(err);
   }
-  return `https://${appDomain}/s/${this.shortCode}`;
+});
+
+// パスワード比較メソッド
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (err) {
+    console.error('パスワード比較エラー:', err);
+    return false;
+  }
 };
 
-module.exports = mongoose.model('Url', urlSchema);
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
