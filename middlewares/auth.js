@@ -21,7 +21,7 @@ exports.isAuthenticated = (req, res, next) => {
 
 /**
  * ユーザーがプレミアムユーザーかどうかを確認するミドルウェア
- * すべての機能はプレミアムユーザーのみ利用可能
+ * プレミアム機能へのアクセスを制限
  */
 exports.isPremiumUser = async (req, res, next) => {
   if (!req.session || !req.session.userId) {
@@ -63,6 +63,7 @@ exports.isPremiumUser = async (req, res, next) => {
 
 /**
  * サブスクリプション情報を取得するミドルウェア
+ * すべてのリクエストでサブスクリプション情報を利用可能にする
  */
 exports.getSubscriptionInfo = async (req, res, next) => {
   if (!req.session || !req.session.userId) {
@@ -71,12 +72,23 @@ exports.getSubscriptionInfo = async (req, res, next) => {
   }
   
   try {
+    // アクティブなサブスクリプションを検索
     const subscription = await Subscription.findOne({
       userId: req.session.userId,
       status: 'active'
     });
     
     res.locals.subscription = subscription;
+    
+    // ユーザー情報も取得して保存
+    if (req.session.userId) {
+      const user = await User.findById(req.session.userId);
+      if (user) {
+        req.user = user;
+        res.locals.user = user;
+      }
+    }
+    
     next();
   } catch (err) {
     console.error('サブスクリプション情報取得エラー:', err);
